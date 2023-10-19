@@ -34,7 +34,7 @@ app.listen(process.env.PORT || 3031, () => {
 
 const scanPorts = async (domain) => {
   try {
-    const { stdout, stderr } = await promisify(exec)(`nmap -F ${domain}`);
+    const { stdout, stderr } = await promisify(exec)(`nmap -F -sS ${domain}`);
     if (stdout) {
       return stdout;
     }
@@ -49,7 +49,8 @@ const scanPorts = async (domain) => {
 const pleskScan = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
-      `nmap -A -p 8443 ${domain}`
+//      `nmap -A -p 8443 ${domain}`
+      `nmap -sC -sS --traceroute -F ${domain}`
     );
     if (stdout) {
       return stdout;
@@ -87,6 +88,34 @@ const pleskVersionMatchFunction = async () => {
       console.error(error);
     });
 };
+
+//  lookup domain's MX records
+const digForMx = async (domain) => {
+  try {
+    const { stdout, stderr } = await promisify(exec)(
+      `dig mx ${domain}`
+    );
+    if (stdout) {
+      return stdout;
+    }
+    if (stderr) {
+      return "error: " + stderr;
+    }
+  } catch (err) {
+    return "error: " + err;
+  }
+}
+
+const digForMailServer = async (mailDomain) => {
+  // try {
+  //   const { stdout, stderr } = await promisify(exec)(
+  //     `dig a ${mailDomain}`
+  //   )
+  // }
+  return;
+}
+
+/* Domain Scanning Function */
 
 const scanDomain = async (domain) => {
   let openPortList = [];
@@ -163,17 +192,52 @@ const scanDomain = async (domain) => {
   // console.log("primaryIpAddress outside.. " + primaryIpAddress);
   // console.log("secondaryIpAddresses outside "+secondaryIpAddresses);
 
-  /* TODO: Fix regex for rDNS */
-
   // Find rDNS
   // rDNS record for 74.6.143.26: media-router-fp74.prod.media.vip.bf1.yahoo.com
-  let rdnsRegex = new RegExp(`rDNS record for .+\\b(?<rdnsRecord>.+)[\\b]`);
+  let rdnsRegex = new RegExp(`rDNS record for ${primaryIpAddress}: (?<rdnsRecord>.+)[\\b\\s\\rl\\r]`);
   if (rdnsRegex.test(returnedScan)) {
     // rDNS address found
     let rdnsMatch = rdnsRegex.exec(returnedScan);
     var ptrRecord = rdnsMatch.groups.rdnsRecord;
     console.log(ptrRecord);
+  } else {
+    var ptrRecord = "undefined";
   }
+
+  let mxReturned = await digForMx(domain);
+  console.log(mxReturned);
+
+      //  ;; ANSWER SECTION:
+      //  unlimitedweb.space.     81755   IN      MX      10 mail.unlimitedweb.space.
+      //
+      //  ;; Query time: 0 msec
+
+      let mxRegex = new RegExp(`IN\\s+MX\\s+\\d{1,2}\\s+(.+)\\.`, 'gi');
+      let mxArray;
+      let foundMxArray = [];
+
+      mxRegex.lastIndex = 0; // reset the last index
+      while ((mxArray = mxRegex.exec(mxReturned)) !== null) {
+        let mxRegex2 = new RegExp(`IN\\s+MX\\s+\\d{1,2}\\s+(?<mxRecordFound>\\w+\\.\\w+\\.\\w+)\\.`);
+        let mxRegexMatch2 = mxRegex2.exec(mxArray);
+        foundMxArray.push(mxRegexMatch2.groups.mxRecordFound);
+      }
+      if (foundMxArray == []) {
+        foundMxArray = "undefined";
+      }
+      console.log(foundMxArray);
+
+      foundMxArray.forEach(async (mxRecord) => {
+        let mailARecord = await digForMailServer(mxRecord);
+      })
+ 
+
+  ///////
+
+ // if (mxRecord !== "undefined") {
+    // let mailServerReturned = await digForMailServer(mxRecord);
+    // console.log(mailServerReturned);
+//  }
 
   return {
     openPorts: openPortList,
@@ -184,6 +248,7 @@ const scanDomain = async (domain) => {
     domainMainIp: primaryIpAddress,
     domainSecondaryIps: secondaryIpAddresses,
     reverseDNS: ptrRecord,
+    mailServer: foundMxArray,
     anotherValue: "1",
   };
 };

@@ -4,6 +4,8 @@ XellIX is an upcoming interactive website and server health checker, maintenance
 
 ### Work Log
 
+- October 18, 2023 : Added ability to lookup rDNS and MX records
+
 - October 16, 2023 : Fixed function to include correct Plesk subversion; added primary and secondary IPv4/IPv6 captures
 
 - October 13, 2023 : Fixed function to find current Plesk release version
