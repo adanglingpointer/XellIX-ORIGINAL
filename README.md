@@ -4,6 +4,8 @@ XellIX is an upcoming interactive website and server health checker, maintenance
 
 ### Work Log
 
+- October 22, 2023 : Find WordPress installations and version
+
 - October 19, 2023 : Test MX records for associated A record; lookup SPF; lookup hostname
 
 - October 18, 2023 : Added ability to lookup rDNS and MX records

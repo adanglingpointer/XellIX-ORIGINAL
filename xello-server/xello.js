@@ -1,20 +1,21 @@
+// ------------ //
+/* = Requires = */
+// ------------ //
+
 const axios = require("axios");
-
 const { exec, execSync } = require("child_process");
-
 const { promisify } = require("util");
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const { stdout, stderr } = require("process");
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
 
-let targetPleskVersionName;
-let targetPleskVersionNumber;
-var currentVersionName = "undefined";
-var currentVersionNumber = "undefined";
-var foundMissingMx = [];
+
+// ------------------------ //
+/* = Setup Express Server = */
+// ------------------------ //
+
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.post("/", async (request, response) => {
   const requestData = request.query.data;
@@ -37,6 +38,21 @@ app.listen(process.env.PORT || 3031, () => {
   console.log("Server started on port 3031");
 });
 
+// --------------------------- //
+/* = Program Scope Variables = */
+// --------------------------- //
+
+let targetPleskVersionName;
+let targetPleskVersionNumber;
+var currentVersionName = "undefined";
+var currentVersionNumber = "undefined";
+var foundMissingMx = [];
+
+// ------------ //
+/* = Scanners = */
+// ------------ //
+
+//  Scan all ports with nmap.  -F for faster scanning.  -sS to touch lightly.
 const scanPorts = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(`nmap -F -sS ${domain}`);
@@ -51,6 +67,7 @@ const scanPorts = async (domain) => {
   }
 };
 
+//  If Plesk is detected, we will traceroute and find version.
 const pleskScan = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
@@ -68,25 +85,18 @@ const pleskScan = async (domain) => {
   }
 };
 
-//  lookup current version of Plesk offered
+//  Lookup most recent release version for Plesk
 const pleskVersionMatchFunction = async () => {
   return axios
     .get("https://docs.plesk.com/release-notes/obsidian/change-log/")
     .then(async (response) => {
-      // let pleskReleaseRegex = new RegExp(
-      //   `changelog-entry__title"\>Plesk (?<versionName>\\w+) (?<versionNumber>[\\d{1,3}\.]{2}\.\\d+)`
-      // );
       let pleskReleaseRegex = new RegExp(
         `changelog-entry__title"\>Plesk (?<versionName>\\w+) (?<versionNumber>\\d{1,3}[.]\\d{1,3}[.]\\d{1,3})`
       );
-      //<h2 class="changelog-entry__title">Plesk Obsidian 18.0.56
       let currentVersionMatch = await pleskReleaseRegex.exec(response.data);
 
       currentVersionName = currentVersionMatch.groups.versionName;
       currentVersionNumber = currentVersionMatch.groups.versionNumber;
-
-      // console.log("currentVersionName "+currentVersionName);
-      // console.log("currentVersionNumber "+currentVersionNumber);
 
       return [currentVersionName, currentVersionNumber];
     })
@@ -95,35 +105,7 @@ const pleskVersionMatchFunction = async () => {
     });
 };
 
-//  lookup current version of WordPress offered
-//  TODO!!!
-const wordpressVersionMatchFunction = async () => {
-  return axios
-    .get("https://docs.plesk.com/release-notes/obsidian/change-log/")
-    .then(async (response) => {
-      // let pleskReleaseRegex = new RegExp(
-      //   `changelog-entry__title"\>Plesk (?<versionName>\\w+) (?<versionNumber>[\\d{1,3}\.]{2}\.\\d+)`
-      // );
-      let pleskReleaseRegex = new RegExp(
-        `changelog-entry__title"\>Plesk (?<versionName>\\w+) (?<versionNumber>\\d{1,3}[.]\\d{1,3}[.]\\d{1,3})`
-      );
-      //<h2 class="changelog-entry__title">Plesk Obsidian 18.0.56
-      let currentVersionMatch = await pleskReleaseRegex.exec(response.data);
-
-      currentVersionName = currentVersionMatch.groups.versionName;
-      currentVersionNumber = currentVersionMatch.groups.versionNumber;
-
-      // console.log("currentVersionName "+currentVersionName);
-      // console.log("currentVersionNumber "+currentVersionNumber);
-
-      return [currentVersionName, currentVersionNumber];
-    })
-    .catch((error) => {
-      console.error(error);
-    });
-};
-
-//  lookup domain's MX records
+//  Lookup domain's MX records
 const digForMx = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(`dig mx ${domain}`);
@@ -138,7 +120,7 @@ const digForMx = async (domain) => {
   }
 };
 
-//  resolve MX records
+//  Resolve MX records to IP
 const pingMx = async (mailDomain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(`ping ${mailDomain} -c 1`);
@@ -153,7 +135,7 @@ const pingMx = async (mailDomain) => {
   }
 };
 
-//  lookup SPF record
+//  Lookup SPF record
 const digForTxt = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(`dig txt ${domain}`);
@@ -168,7 +150,8 @@ const digForTxt = async (domain) => {
   }
 };
 
-//  lookup hostname
+/*
+//  Lookup hostname
 const nmapForHostname = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
@@ -184,8 +167,26 @@ const nmapForHostname = async (domain) => {
     return "error: " + err;
   }
 };
+*/
 
-//  detect WordPress & PHP
+//  Lookup hostname
+const hostScanForName = async (targetIp) => {
+  try {
+    const { stdout, stderr } = await promisify(exec)(
+      `host ${targetIp}`
+    );
+    if (stdout) {
+      return stdout;
+    }
+    if (stderr) {
+      return "error: " + stderr;
+    }
+  } catch (err) {
+    return "error: " + err;
+  }
+}
+
+//  Detect if WordPress exists & PHP version
 const curlForWordpress = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
@@ -202,31 +203,71 @@ const curlForWordpress = async (domain) => {
   }
 };
 
-/* Domain Scanning Function */
+//  If WordPress is detected, find the version
+const fetchWordPressVersion = async (url) => {
+  return axios
+    .get(url)
+    .then(async (response) => {
+      let wpVersionRegex = new RegExp(
+        `id='login-css' .+login.min.css\\?ver=(?<wpVersionFound>\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})`
+      );
+      let wpVersionMatch = await wpVersionRegex.exec(response.data);
+      let wpVersionNumber = wpVersionMatch.groups.wpVersionFound;
+
+      return wpVersionNumber;
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+};
+
+//  Fetch the latest WordPress release version
+const fetchLatestWordPress = async () => {
+  return axios
+    .get("https://wordpress.org/download/releases/")
+    .then(async (response) => {
+      let wpLatestVersionRegex = new RegExp(
+        `\\<th class="wp-block-wporg-release-tables__cell-version" scope="row"\\>(?<latestWordPressFound>\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\\<`
+      );
+
+      let wpLatestVersionMatch = await wpLatestVersionRegex.exec(response.data);
+      let wpLatestVersionNumber =
+        wpLatestVersionMatch.groups.latestWordPressFound;
+
+      return wpLatestVersionNumber;
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+};
+
+// ***************************** //
+// ~-=~-=~-=~-=~-=~-=~-=~-=~-=~- // ---------- >
+/* Main Domain Scanning Function */
+// ~-=~-=~-=~-=~-=~-=~-=~-=~-=~- // ---------- >
+// ***************************** //
 
 const scanDomain = async (domain) => {
   let openPortList = [];
   let portsToCheck = [21, 22, 25, 80, 443, 8443];
 
+  //  Scan the domain via nmap scan function
   let returnedScan = await scanPorts(domain);
   let pleskRegex = new RegExp("8443/tcp\\s+open");
 
   for (const port of portsToCheck) {
     let testingPortRegex = new RegExp(`${port}\/tcp\\s+open`);
     if (testingPortRegex.test(returnedScan)) {
-      //console.log(`port ${port} is open`);
       openPortList.push(port);
     }
   }
 
-  // find out versioning of Plesk
+  // Find out target's version of Plesk if port 8443 returned open
   if (pleskRegex.test(returnedScan)) {
-    // if Plesk port is open
     let pleskCheck = await pleskScan(domain);
     let pleskVersionRegex = new RegExp(
       `(?:http-title:\\sPlesk\\s)(?<versionName>\\w+)\\s(?<versionNumber>\\d{1,3}[.]\\d{1,3}[.]\\d{1,3})`
     );
-    //http-title: Plesk Obsidian 18.0.55
     if (pleskVersionRegex.test(pleskCheck)) {
       let targetMatch = pleskVersionRegex.exec(pleskCheck);
       targetPleskVersionName = targetMatch.groups.versionName;
@@ -240,6 +281,10 @@ const scanDomain = async (domain) => {
         .catch((error) => console.error(error));
 
       console.log("currentVersionName " + currentVersionName);
+    } else {
+      //  Port 8443 is open, but we can't find Plesk version used
+      targetPleskVersionName = "unknown";
+      targetPleskVersionNumber = "unknown";
     }
   } else {
     // Plesk port not open
@@ -247,8 +292,7 @@ const scanDomain = async (domain) => {
     targetPleskVersionNumber = "undetected";
   }
 
-  // match IP addresses
-  // Nmap scan report for unlimitedweb.space (74.208.157.83)
+  //  Match domain's IP addresses from nmap scan
   let ipMatchingRegex = new RegExp(
     `Nmap scan report for ${domain} \\((?<ipAddress>\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\\)`
   );
@@ -256,13 +300,11 @@ const scanDomain = async (domain) => {
     // we've found an IPv4
     let ipMatch = ipMatchingRegex.exec(returnedScan);
     var primaryIpAddress = ipMatch.groups.ipAddress;
-    //console.log(primaryIpAddress);
   } else {
-    // no IPv4 found
+    // no IPv4 found (host is down)
     var primaryIpAddress = "undefined";
   }
-  // Other addresses for unlimitedweb.space (not scanned): 2607:f1c0:1800:239::1
-  // Other addresses for yahoo.com (not scanned): 98.137.11.164 74.6.143.25 2001:4998:44:3507::8000 2001:4998:124:1507::f001
+  // Capture all alternative IPv4s and IPv6s within one concatenated string
   let secondaryIpMatchingRegex = new RegExp(
     `Other addresses for ${domain} \\(not scanned\\): (?<secondaryIps>.+\\b)`
   );
@@ -270,17 +312,12 @@ const scanDomain = async (domain) => {
     // found secondary IPs
     let secondaryIpMatch = secondaryIpMatchingRegex.exec(returnedScan);
     var secondaryIpAddresses = secondaryIpMatch.groups.secondaryIps;
-    //console.log(secondaryIpAddresses);
   } else {
     // no secondary IPs found
     var secondaryIpAddresses = "undefined";
   }
 
-  // console.log("primaryIpAddress outside.. " + primaryIpAddress);
-  // console.log("secondaryIpAddresses outside "+secondaryIpAddresses);
-
   // Find rDNS
-  // rDNS record for 74.6.143.26: media-router-fp74.prod.media.vip.bf1.yahoo.com
   let rdnsRegex = new RegExp(
     `rDNS record for ${primaryIpAddress}: (?<rdnsRecord>.+)[\\b\\s\\rl\\r]`
   );
@@ -293,19 +330,15 @@ const scanDomain = async (domain) => {
     var ptrRecord = "undefined";
   }
 
+  //  Use a dig command to find MX records
   let mxReturned = await digForMx(domain);
   console.log(mxReturned);
-
-  //  ;; ANSWER SECTION:
-  //  unlimitedweb.space.     81755   IN      MX      10 mail.unlimitedweb.space.
-  //
-  //  ;; Query time: 0 msec
-
   let mxRegex = new RegExp(`IN\\s+MX\\s+\\d{1,2}\\s+(.+)\\.`, "gi");
   let mxArray;
   let foundMxArray = [];
 
   mxRegex.lastIndex = 0; // reset the last index
+  //  Add each MX record to an array
   while ((mxArray = mxRegex.exec(mxReturned)) !== null) {
     let mxRegex2 = new RegExp(
       `IN\\s+MX\\s+\\d{1,2}\\s+(?<mxRecordFound>\\w+\\.\\w+\\.\\w+)\\.`
@@ -314,41 +347,43 @@ const scanDomain = async (domain) => {
     foundMxArray.push(mxRegexMatch2.groups.mxRecordFound);
   }
   if (foundMxArray == []) {
+    //  No MX records found
     foundMxArray = "missing";
   }
   console.log(foundMxArray);
 
+  //  Lookup IP address for each MX record
   foundMxArray.forEach(async (mxRecord) => {
     let mailARecord = await pingMx(mxRecord);
-    // console.log(mailARecord);
-    //PING mx01.ionos.com (74.208.5.21) 56(84) bytes of data.
     let pingMxRegex = new RegExp(
       `PING\\s${mxRecord}\\s\\((?<mxIpFound>\\d{1,4}\\.\\d{1,4}\\.\\d{1,4}\\.\\d{1,4})`
     );
     if (pingMxRegex.test(mailARecord)) {
-      let matchPingMx = pingMxRegex.exec(mailARecord);
-      let foundMxA = matchPingMx.groups.mxIpFound;
+      //  MX record resolved to server
+      //let matchPingMx = pingMxRegex.exec(mailARecord);
+      //let foundMxA = matchPingMx.groups.mxIpFound;
       // console.log("found the A for MX " + foundMxA);
     }
-    // ping: mx00.ionos.com.org.net.tk: Name or service not known
     let pingMissingRegex = new RegExp("Name or service not known");
     if (pingMissingRegex.test(mailARecord)) {
+      //  Add each invalid MX record to an array
       foundMissingMx.push(mailARecord);
     }
   });
 
+  //  Lookup SPF record
   let findTxtRecord = await digForTxt(domain);
-  // unlimitedweb.space.     86400   IN      TXT     "v=spf1 +a +mx +a:hope.unlimitedweb.space -all"
   let spfRegex = new RegExp(`IN\\s+TXT\\s+"(?<spfRecordFound>v=spf1\\s.+)"`);
   if (spfRegex.test(findTxtRecord)) {
+    //  Found SPF record
     let spfMatch = spfRegex.exec(findTxtRecord);
     var spfMatchFound = spfMatch.groups.spfRecordFound;
-    console.log(spfMatchFound);
   } else {
-    console.log("no SPF found:\n" + findTxtRecord);
-    var spfMatchFound = "none";
+    //  No SPF record found
+    var spfMatchFound = "missing";
   }
 
+  /*
   if (openPortList.indexOf(25) > -1) {
     const nmapHostname = await nmapForHostname(domain);
     console.log(nmapHostname);
@@ -365,6 +400,28 @@ const scanDomain = async (domain) => {
       var serverHostname = "undefined";
     }
   }
+  */
+
+  var serverHostname;
+
+  //  Lookup hostname
+  let hostScanResults = await hostScanForName(primaryIpAddress);
+  let hostnameRegex = new RegExp(
+    `domain name pointer (?<foundHostname>[\\w\\d\\..]+)`
+  );
+  if (hostnameRegex.test(hostScanResults)) {
+    let hostnameMatch = hostnameRegex.exec(hostScanResults);
+    serverHostname = hostnameMatch.foundHostname;
+  } else {
+    serverHostname = "undetected";
+  }
+  console.log("server hostname is: " + serverHostname);
+  console.log("host scan results: \n" + hostScanResults);
+
+  // 83.157.208.74.in-addr.arpa domain name pointer mail.unlimitedweb.space.
+
+
+  var newLocation;
 
   var detectWordpress = await curlForWordpress(domain);
   //  Location: https://retro.unlimitedweb.space/wp-login.php
@@ -374,13 +431,13 @@ const scanDomain = async (domain) => {
   );
   while (curlRedirectRegex.test(detectWordpress)) {
     //console.log("in a while loop");
-    //console.log(detectWordpress);
+    console.log(detectWordpress);
     let newLocationMatch = curlRedirectRegex.exec(detectWordpress);
-    let newLocation = newLocationMatch.groups.redirectLocation;
+    newLocation = newLocationMatch.groups.redirectLocation;
     detectWordpress = await curlForWordpress(newLocation);
   }
   //console.log("out of while loop");
-  //console.log(detectWordpress);
+  console.log(detectWordpress);
 
   // HTTP/2 200
   // server: nginx
@@ -409,7 +466,14 @@ const scanDomain = async (domain) => {
   }
 
   if (wordPress === "detected") {
-    let wordPressVersion;
+    //console.log("looking for WP at " + newLocation);
+    var wordPressVersion = await fetchWordPressVersion(newLocation);
+    console.log("target WP: " + wordPressVersion);
+    var latestWordPress = await fetchLatestWordPress();
+    console.log("latest WP: " + latestWordPress);
+  } else {
+    var wordPressVersion = "undetected";
+    var latestWordPress = "undetected";
   }
 
   return {
@@ -418,13 +482,14 @@ const scanDomain = async (domain) => {
     targetPleskVersion: targetPleskVersionNumber,
     currentPleskName: currentVersionName,
     currentPleskVersion: currentVersionNumber,
+    targetWordPressVersion: wordPressVersion,
     domainMainIp: primaryIpAddress,
     domainSecondaryIps: secondaryIpAddresses,
     reverseDNS: ptrRecord,
     mailServer: foundMxArray,
     mxUnresolved: foundMissingMx,
     spfRecord: spfMatchFound,
-    hostName: serverHostname,
+    //hostName: serverHostname,
     anotherValue: "1",
   };
 };
