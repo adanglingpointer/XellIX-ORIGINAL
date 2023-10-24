@@ -10,6 +10,9 @@ const bodyParser = require("body-parser");
 const { stdout, stderr } = require("process");
 const app = express();
 
+const fs = require('fs');
+
+
 
 // ------------------------ //
 /* = Setup Express Server = */
@@ -38,6 +41,7 @@ app.listen(process.env.PORT || 3031, () => {
   console.log("Server started on port 3031");
 });
 
+
 // --------------------------- //
 /* = Program Scope Variables = */
 // --------------------------- //
@@ -47,6 +51,32 @@ let targetPleskVersionNumber;
 var currentVersionName = "undefined";
 var currentVersionNumber = "undefined";
 var foundMissingMx = [];
+
+// ----------------------------------- //
+/* = Check for cached target results = */
+// ----------------------------------- //
+
+const checkForCachedResults = async (domain, results) => {
+
+const path = `/scans/${domain}`;
+
+// Check if file exists
+fs.access(path, fs.constants.F_OK, (err) => {
+    if (err) {
+        console.log('File does not exist. Creating file...');
+        fs.writeFile(path, results, (err) => {
+            if (err) throw err;
+            console.log('File saved!');
+        });
+    } else {
+        console.log('File exists. Reading file...');
+        fs.readFile(path, 'utf8', (err, data) => {
+            if (err) throw err;
+            console.log('File contents:', data);
+        });
+    }
+});
+}
 
 // ------------ //
 /* = Scanners = */
@@ -72,7 +102,8 @@ const pleskScan = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
       //      `nmap -A -p 8443 ${domain}`
-      `nmap -sC -sS --traceroute -F ${domain}`
+      // `nmap -sC -sS --traceroute -F ${domain}`
+      `nmap -sC -sS -p 8443 ${domain}`
     );
     if (stdout) {
       return stdout;
@@ -150,25 +181,6 @@ const digForTxt = async (domain) => {
   }
 };
 
-/*
-//  Lookup hostname
-const nmapForHostname = async (domain) => {
-  try {
-    const { stdout, stderr } = await promisify(exec)(
-      `nmap -sV -sS -p 25 ${domain}`
-    );
-    if (stdout) {
-      return stdout;
-    }
-    if (stderr) {
-      return "error: " + stderr;
-    }
-  } catch (err) {
-    return "error: " + err;
-  }
-};
-*/
-
 //  Lookup hostname
 const hostScanForName = async (targetIp) => {
   try {
@@ -241,6 +253,44 @@ const fetchLatestWordPress = async () => {
     });
 };
 
+//  WhoIs lookup
+const whoIsLookup = async (domain) => {
+  //  Resolve root domain (remove subdomains)
+  let withoutSubdomain = domain.split(".").slice(-2).join(".");
+  console.log(withoutSubdomain);
+
+  try {
+    const { stdout, stderr } = await promisify(exec)(
+      `whois ${withoutSubdomain}`
+    );
+    if (stdout) {
+      return stdout;
+    }
+    if (stderr) {
+      return "error: " + stderr;
+    }
+  } catch (err) {
+    return "error: " + err;
+  }
+}
+
+//  If 443 is open, detect SSL date
+const lookupSSL = async (domain) => {
+  try {
+    const { stdout, stderr } = await promisify(exec)(
+      `nmap -sS -sC -p 443 ${domain}`
+    );
+    if (stdout) {
+      return stdout;
+    }
+    if (stderr) {
+      return "error: " + stderr;
+    }
+  } catch (err) {
+    return "error: " + err;
+  }
+}
+
 // ***************************** //
 // ~-=~-=~-=~-=~-=~-=~-=~-=~-=~- // ---------- >
 /* Main Domain Scanning Function */
@@ -249,9 +299,9 @@ const fetchLatestWordPress = async () => {
 
 const scanDomain = async (domain) => {
   let openPortList = [];
-  let portsToCheck = [21, 22, 25, 80, 443, 8443];
+  let portsToCheck = [21, 22, 25, 53, 80, 110, 143, 443, 465, 993, 995, 1433, 3306, 3389, 5432, 8443, 8447];
 
-  //  Scan the domain via nmap scan function
+  //  Scan the domain via nmap function
   let returnedScan = await scanPorts(domain);
   let pleskRegex = new RegExp("8443/tcp\\s+open");
 
@@ -350,7 +400,6 @@ const scanDomain = async (domain) => {
     //  No MX records found
     foundMxArray = "missing";
   }
-  console.log(foundMxArray);
 
   //  Lookup IP address for each MX record
   foundMxArray.forEach(async (mxRecord) => {
@@ -359,7 +408,7 @@ const scanDomain = async (domain) => {
       `PING\\s${mxRecord}\\s\\((?<mxIpFound>\\d{1,4}\\.\\d{1,4}\\.\\d{1,4}\\.\\d{1,4})`
     );
     if (pingMxRegex.test(mailARecord)) {
-      //  MX record resolved to server
+      //  MX record resolved to server, not doing anything with this yet
       //let matchPingMx = pingMxRegex.exec(mailARecord);
       //let foundMxA = matchPingMx.groups.mxIpFound;
       // console.log("found the A for MX " + foundMxA);
@@ -383,6 +432,7 @@ const scanDomain = async (domain) => {
     var spfMatchFound = "missing";
   }
 
+  //  possible function to find mail server HELO response
   /*
   if (openPortList.indexOf(25) > -1) {
     const nmapHostname = await nmapForHostname(domain);
@@ -407,17 +457,16 @@ const scanDomain = async (domain) => {
   //  Lookup hostname
   let hostScanResults = await hostScanForName(primaryIpAddress);
   let hostnameRegex = new RegExp(
-    `domain name pointer (?<foundHostname>[\\w\\d\\..]+)`
+    `domain name pointer (?<foundHostname>[\\w\\d\\..]+)\\.`
   );
   if (hostnameRegex.test(hostScanResults)) {
     let hostnameMatch = hostnameRegex.exec(hostScanResults);
-    serverHostname = hostnameMatch.foundHostname;
+    serverHostname = hostnameMatch.groups.foundHostname;
+
   } else {
     serverHostname = "undetected";
   }
   console.log("server hostname is: " + serverHostname);
-  console.log("host scan results: \n" + hostScanResults);
-
   // 83.157.208.74.in-addr.arpa domain name pointer mail.unlimitedweb.space.
 
 
@@ -476,6 +525,66 @@ const scanDomain = async (domain) => {
     var latestWordPress = "undetected";
   }
 
+  //  WhoIs lookup
+  var registrarMatch;
+  let whoIsLookupResults = await whoIsLookup(domain);
+  let whoIsLookupRegex = new RegExp(
+    `Registrar URL: (?<registrarFound>.+)[\\r\\n\\rl\\s]+`
+  );
+  if (whoIsLookupRegex.test(whoIsLookupResults)) {
+    let whoIsMatch = whoIsLookupRegex.exec(whoIsLookupResults);
+    registrarMatch = whoIsMatch.groups.registrarFound;
+    console.log("registrar found: " + registrarMatch);
+  } else {
+    registrarMatch = "undefined";
+  }
+
+  // Tech Email: Please query the RDDS service of the Registrar of Record identified in this output for information on how to contact the Registrant, Admin, or Tech contact of the queried domain name.
+  // Name Server: LOVE.UNLIMITEDWEB.SPACE
+  // Name Server: HOPE.UNLIMITEDWEB.SPACE
+  // DNSSEC: unsigned
+
+
+  let nameServerRegex = new RegExp(`Name Server: (?<nameServerFound>.+)[\\r\\n\\rl\\s]+`, "gi");
+  let nameServerMatch;
+  let nameServerArray = [];
+
+  nameServerRegex.lastIndex = 0;
+  while ((nameServerMatch = nameServerRegex.exec(whoIsLookupResults)) !== null) {
+    nameServerArray.push(nameServerMatch.groups.nameServerFound);
+  }
+  console.log(nameServerArray);
+
+  //  Not valid after:  2023-12-24T04:14:05
+
+  //  Lookup SSL date
+  var sslExpiryDate;
+  var sslIsExpired;
+  let sslDateLookup = await lookupSSL(domain);
+  let sslDateRegex = new RegExp(`Not valid after:\\s+(?<sslExpiryDateFound>.+)[\\r\\n\\rl\\s]+`);
+  if (sslDateRegex.test(sslDateLookup)) {
+    let sslDateMatch = sslDateRegex.exec(sslDateLookup);
+    sslExpiryDate = sslDateMatch.groups.sslExpiryDateFound;
+    console.log("sslExpiryDate is " + sslExpiryDate);
+
+        // Get today's date
+        let currentDate = new Date();
+        // Compare dates
+        if (sslExpiryDate < currentDate) {
+          //console.log("SSL certificate has expired.");
+          sslIsExpired = "true";
+        } else {
+          //console.log("SSL certificate is still valid.");
+          sslIsExpired = "false"
+        }
+  } else {
+    // couldn't match the SSL date
+    sslExpiryDate = "unknown";
+    sslIsExpired = "unknown";
+  }
+
+
+
   return {
     openPorts: openPortList,
     targetPleskName: targetPleskVersionName,
@@ -483,13 +592,18 @@ const scanDomain = async (domain) => {
     currentPleskName: currentVersionName,
     currentPleskVersion: currentVersionNumber,
     targetWordPressVersion: wordPressVersion,
+    currentWordPressVersion: latestWordPress,
     domainMainIp: primaryIpAddress,
     domainSecondaryIps: secondaryIpAddresses,
     reverseDNS: ptrRecord,
     mailServer: foundMxArray,
     mxUnresolved: foundMissingMx,
     spfRecord: spfMatchFound,
-    //hostName: serverHostname,
+    hostName: serverHostname,
+    domainRegistrar: registrarMatch,
+    nameServers: nameServerArray,
+    sslExpiry: sslExpiryDate,
+    sslExpired: sslIsExpired,
     anotherValue: "1",
   };
 };
