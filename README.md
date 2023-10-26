@@ -1,8 +1,13 @@
 # XellIX
 
-XellIX is an upcoming interactive website and server health checker, maintenance tool, and installer.
+XellIX is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently in beta, and can be accessed at:
+
+http://108.175.11.49:3031/{domain}
+
 
 ### Work Log
+
+- October 25, 2023 : Added caching for queries; added GET route for easy querying via browser
 
 - October 23, 2023 : Fetch latest WordPress version; lookup registrar; lookup name servers; resolve SSL expiry date
 

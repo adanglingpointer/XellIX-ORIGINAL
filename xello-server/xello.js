@@ -1,3 +1,7 @@
+//  TODO:
+//    Fix mxRegex2
+//     - it fails on MX with dashes - (i.e., apple.com has mx-in-rno.apple.com)
+
 // ------------ //
 /* = Requires = */
 // ------------ //
@@ -10,9 +14,9 @@ const bodyParser = require("body-parser");
 const { stdout, stderr } = require("process");
 const app = express();
 
-const fs = require('fs');
-
-
+const fs = require("fs");
+const path = require("path");
+const { json } = require("body-parser");
 
 // ------------------------ //
 /* = Setup Express Server = */
@@ -32,8 +36,66 @@ app.post("/", async (request, response) => {
     response.send(sendResponse);
   } else {
     let lookupDomain = requestData;
+
+    const path = `scans/${lookupDomain}`;
+
+    // Check if file exists
+    fs.access(path, fs.constants.F_OK, async (err) => {
+      if (err) {
+        console.log("File does not exist. Creating file...");
+        let sendResponse = await scanDomain(lookupDomain);
+        response.send(sendResponse);
+        fs.writeFile(path, JSON.stringify(sendResponse), (err) => {
+          if (err) throw err;
+          console.log("File saved!");
+        });
+      } else {
+        console.log("File exists. Reading file...");
+        fs.readFile(path, "utf8", (err, data) => {
+          if (err) throw err;
+          console.log("File contents:", data);
+          response.send(data);
+        });
+      }
+    });
+  }
+});
+
+app.get("/:target", async (request, response) => {
+  const requestData = request.params.target;
+  //const requestData = request.query.data;
+  console.log("we received a request: \n" + requestData);
+  let lookupMode;
+  const ipRegex = /(\d{1,3}.){4}/;
+  if (ipRegex.test(requestData)) {
+    lookupMode = "i"; // IP Address
+    let lookupDomain = requestData;
     let sendResponse = await scanDomain(lookupDomain);
     response.send(sendResponse);
+  } else {
+    let lookupDomain = requestData;
+
+    const path = `scans/${lookupDomain}`;
+
+    // Check if file exists
+    fs.access(path, fs.constants.F_OK, async (err) => {
+      if (err) {
+        console.log("File does not exist. Creating file...");
+        let sendResponse = await scanDomain(lookupDomain);
+        response.send(sendResponse);
+        fs.writeFile(path, JSON.stringify(sendResponse), (err) => {
+          if (err) throw err;
+          console.log("File saved!");
+        });
+      } else {
+        console.log("File exists. Reading file...");
+        fs.readFile(path, "utf8", (err, data) => {
+          if (err) throw err;
+          console.log("File contents:", data);
+          response.send(data);
+        });
+      }
+    });
   }
 });
 
@@ -41,6 +103,42 @@ app.listen(process.env.PORT || 3031, () => {
   console.log("Server started on port 3031");
 });
 
+/////
+
+// Clear cached lookups
+function deleteOldFiles() {
+  const currentTime = Date.now();
+
+  dirName = "scans";
+
+  const dirContents = fs.readdirSync(dirName);
+
+  for (const fileName of dirContents) {
+    const filePath = path.join(dirName, fileName);
+    const fileStats = fs.statSync(filePath);
+    const fileTime = fileStats.mtimeMs;
+    const timeDiff = currentTime - fileTime;
+
+    // Convert the time difference to minutes
+    const timeDiffInMinutes = timeDiff / (1000 * 60);
+
+    // Check if the time difference is greater than 1 minute
+    if (timeDiffInMinutes > 1) {
+      // Delete the file using fs.unlinkSync
+      fs.unlinkSync(filePath);
+
+      console.log(`File ${filePath} deleted`);
+    } else {
+      console.log(`File ${filePath} is not old enough`);
+    }
+  }
+}
+
+setInterval(() => {
+  deleteOldFiles();
+}, 10000);
+
+/////
 
 // --------------------------- //
 /* = Program Scope Variables = */
@@ -51,32 +149,6 @@ let targetPleskVersionNumber;
 var currentVersionName = "undefined";
 var currentVersionNumber = "undefined";
 var foundMissingMx = [];
-
-// ----------------------------------- //
-/* = Check for cached target results = */
-// ----------------------------------- //
-
-const checkForCachedResults = async (domain, results) => {
-
-const path = `/scans/${domain}`;
-
-// Check if file exists
-fs.access(path, fs.constants.F_OK, (err) => {
-    if (err) {
-        console.log('File does not exist. Creating file...');
-        fs.writeFile(path, results, (err) => {
-            if (err) throw err;
-            console.log('File saved!');
-        });
-    } else {
-        console.log('File exists. Reading file...');
-        fs.readFile(path, 'utf8', (err, data) => {
-            if (err) throw err;
-            console.log('File contents:', data);
-        });
-    }
-});
-}
 
 // ------------ //
 /* = Scanners = */
@@ -184,9 +256,7 @@ const digForTxt = async (domain) => {
 //  Lookup hostname
 const hostScanForName = async (targetIp) => {
   try {
-    const { stdout, stderr } = await promisify(exec)(
-      `host ${targetIp}`
-    );
+    const { stdout, stderr } = await promisify(exec)(`host ${targetIp}`);
     if (stdout) {
       return stdout;
     }
@@ -196,7 +266,7 @@ const hostScanForName = async (targetIp) => {
   } catch (err) {
     return "error: " + err;
   }
-}
+};
 
 //  Detect if WordPress exists & PHP version
 const curlForWordpress = async (domain) => {
@@ -272,7 +342,7 @@ const whoIsLookup = async (domain) => {
   } catch (err) {
     return "error: " + err;
   }
-}
+};
 
 //  If 443 is open, detect SSL date
 const lookupSSL = async (domain) => {
@@ -289,7 +359,23 @@ const lookupSSL = async (domain) => {
   } catch (err) {
     return "error: " + err;
   }
-}
+};
+
+const testPort53 = async (domain) => {
+  try {
+    const { stdout, stderr } = await promisify(exec)(
+      `nmap -sS -sU -p 53 ${domain}`
+    );
+    if (stdout) {
+      return stdout;
+    }
+    if (stderr) {
+      return "error: " + stderr;
+    }
+  } catch (err) {
+    return "error: " + err;
+  }
+};
 
 // ***************************** //
 // ~-=~-=~-=~-=~-=~-=~-=~-=~-=~- // ---------- >
@@ -299,7 +385,10 @@ const lookupSSL = async (domain) => {
 
 const scanDomain = async (domain) => {
   let openPortList = [];
-  let portsToCheck = [21, 22, 25, 53, 80, 110, 143, 443, 465, 993, 995, 1433, 3306, 3389, 5432, 8443, 8447];
+  let portsToCheck = [
+    21, 22, 25, 53, 80, 110, 143, 443, 465, 993, 995, 1433, 3306, 3389, 5432,
+    8443, 8447,
+  ];
 
   //  Scan the domain via nmap function
   let returnedScan = await scanPorts(domain);
@@ -394,7 +483,9 @@ const scanDomain = async (domain) => {
       `IN\\s+MX\\s+\\d{1,2}\\s+(?<mxRecordFound>\\w+\\.\\w+\\.\\w+)\\.`
     );
     let mxRegexMatch2 = mxRegex2.exec(mxArray);
-    foundMxArray.push(mxRegexMatch2.groups.mxRecordFound);
+    if (mxRegexMatch2.groups.mxRecordFound) {
+      foundMxArray.push(mxRegexMatch2.groups.mxRecordFound);
+    }
   }
   if (foundMxArray == []) {
     //  No MX records found
@@ -462,37 +553,23 @@ const scanDomain = async (domain) => {
   if (hostnameRegex.test(hostScanResults)) {
     let hostnameMatch = hostnameRegex.exec(hostScanResults);
     serverHostname = hostnameMatch.groups.foundHostname;
-
   } else {
     serverHostname = "undetected";
   }
-  console.log("server hostname is: " + serverHostname);
-  // 83.157.208.74.in-addr.arpa domain name pointer mail.unlimitedweb.space.
-
 
   var newLocation;
 
   var detectWordpress = await curlForWordpress(domain);
-  //  Location: https://retro.unlimitedweb.space/wp-login.php
-  //  location: https://help.unlimitedweb.space/
   let curlRedirectRegex = new RegExp(
     `[Ll]ocation:\\s+(?<redirectLocation>.+)[\\b\\s\\rl\\n]`
   );
   while (curlRedirectRegex.test(detectWordpress)) {
-    //console.log("in a while loop");
     console.log(detectWordpress);
     let newLocationMatch = curlRedirectRegex.exec(detectWordpress);
     newLocation = newLocationMatch.groups.redirectLocation;
     detectWordpress = await curlForWordpress(newLocation);
   }
-  //console.log("out of while loop");
   console.log(detectWordpress);
-
-  // HTTP/2 200
-  // server: nginx
-  // date: Thu, 19 Oct 2023 18:11:28 GMT
-  // content-type: text/html; charset=UTF-8
-  // x-powered-by: PHP/8.1.24
 
   let wpLoginRegex = new RegExp(`HTTP/2\\s+200`);
   if (wpLoginRegex.test(detectWordpress)) {
@@ -533,57 +610,142 @@ const scanDomain = async (domain) => {
   );
   if (whoIsLookupRegex.test(whoIsLookupResults)) {
     let whoIsMatch = whoIsLookupRegex.exec(whoIsLookupResults);
-    registrarMatch = whoIsMatch.groups.registrarFound;
+    let registrarMatchRaw = whoIsMatch.groups.registrarFound;
+    registrarMatch = registrarMatchRaw.toLowerCase();
     console.log("registrar found: " + registrarMatch);
   } else {
     registrarMatch = "undefined";
   }
 
-  // Tech Email: Please query the RDDS service of the Registrar of Record identified in this output for information on how to contact the Registrant, Admin, or Tech contact of the queried domain name.
-  // Name Server: LOVE.UNLIMITEDWEB.SPACE
-  // Name Server: HOPE.UNLIMITEDWEB.SPACE
-  // DNSSEC: unsigned
-
-
-  let nameServerRegex = new RegExp(`Name Server: (?<nameServerFound>.+)[\\r\\n\\rl\\s]+`, "gi");
+  let nameServerRegex = new RegExp(
+    `Name Server: (?<nameServerFound>.+)[\\r\\n\\rl\\s]+`,
+    "gi"
+  );
   let nameServerMatch;
   let nameServerArray = [];
 
   nameServerRegex.lastIndex = 0;
-  while ((nameServerMatch = nameServerRegex.exec(whoIsLookupResults)) !== null) {
-    nameServerArray.push(nameServerMatch.groups.nameServerFound);
+  while (
+    (nameServerMatch = nameServerRegex.exec(whoIsLookupResults)) !== null
+  ) {
+    if (
+      nameServerArray.includes(
+        nameServerMatch.groups.nameServerFound.toLowerCase()
+      )
+    ) {
+      //
+      console.log(
+        "already exists: " +
+          nameServerMatch.groups.nameServerFound.toLowerCase()
+      );
+    } else {
+      nameServerArray.push(
+        nameServerMatch.groups.nameServerFound.toLowerCase()
+      );
+    }
   }
-  console.log(nameServerArray);
 
-  //  Not valid after:  2023-12-24T04:14:05
+  var nsNotFound = [];
+  var ns53closed = [];
+  var ns53filtered = [];
+
+  //  Test port 53 TCP & UDP on all name servers
+  nameServerArray.forEach(async (nameServer) => {
+    console.log("testing NS: " + nameServer);
+    let is53open = await testPort53(nameServer);
+    let missingARecordRegex = new RegExp(`Failed to resolve`);
+    if (missingARecordRegex.test(is53open)) {
+      nsNotFound.push(nameServer);
+    }
+    let closedPort53Regex = new RegExp(
+      `53/(?<protocolClosed>\\w+)\\s+closed\\s+domain`
+    );
+    if (closedPort53Regex.test(is53open)) {
+      let ns53closedMatch = closedPort53Regex.exec(is53open);
+      let ns53protocolClosed = ns53closedMatch.groups.protocolClosed;
+      ns53closed.push(nameServer + "~" + ns53protocolClosed);
+    }
+    let filteredPort53Regex = new RegExp(
+      `53/(?<protocolFiltered>\\w+)\\s+filtered\\s+domain`
+    );
+    if (filteredPort53Regex.test(is53open)) {
+      let ns53filteredMatch = filteredPort53Regex.exec(is53open);
+      let ns53protocolFiltered = ns53filteredMatch.groups.protocolFiltered;
+      ns53filtered.push(nameServer + "~" + ns53protocolFiltered);
+    }
+  });
 
   //  Lookup SSL date
   var sslExpiryDate;
   var sslIsExpired;
   let sslDateLookup = await lookupSSL(domain);
-  let sslDateRegex = new RegExp(`Not valid after:\\s+(?<sslExpiryDateFound>.+)[\\r\\n\\rl\\s]+`);
+  let sslDateRegex = new RegExp(
+    `Not valid after:\\s+(?<sslExpiryDateFound>.+)[\\r\\n\\rl\\s]+`
+  );
   if (sslDateRegex.test(sslDateLookup)) {
     let sslDateMatch = sslDateRegex.exec(sslDateLookup);
     sslExpiryDate = sslDateMatch.groups.sslExpiryDateFound;
     console.log("sslExpiryDate is " + sslExpiryDate);
 
-        // Get today's date
-        let currentDate = new Date();
-        // Compare dates
-        if (sslExpiryDate < currentDate) {
-          //console.log("SSL certificate has expired.");
-          sslIsExpired = "true";
-        } else {
-          //console.log("SSL certificate is still valid.");
-          sslIsExpired = "false"
-        }
+    /* Formatting date and time nicely */
+
+    // Force EST timing
+    process.env.TZ = "America/New_York";
+
+    // Get today's date
+    var currentDate = new Date();
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const day = currentDate.getDate();
+    const hour = currentDate.getHours();
+    const minute = currentDate.getMinutes();
+    const second = currentDate.getSeconds();
+
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const monthName = monthNames[month];
+
+    // Convert the hour to 12-hour format and get the AM/PM indicator
+    let hour12 = hour % 12;
+    if (hour12 === 0) {
+      hour12 = 12;
+    }
+    const ampm = hour < 12 ? "AM" : "PM";
+
+    // Convert the minute and second to two-digit format using padStart()
+    const minute2 = minute.toString().padStart(2, "0");
+    //const second2 = second.toString().padStart(2, "0");
+
+    // Format the date and time
+    var formattedDate = `${monthName} ${day}, ${year} ${hour12}:${minute2} ${ampm} EST`;
+
+    // Compare dates for SSL
+    if (sslExpiryDate < currentDate) {
+      //console.log("SSL certificate has expired.");
+      sslIsExpired = "true";
+    } else {
+      //console.log("SSL certificate is still valid.");
+      sslIsExpired = "false";
+    }
   } else {
     // couldn't match the SSL date
     sslExpiryDate = "unknown";
     sslIsExpired = "unknown";
   }
-
-
 
   return {
     openPorts: openPortList,
@@ -604,6 +766,10 @@ const scanDomain = async (domain) => {
     nameServers: nameServerArray,
     sslExpiry: sslExpiryDate,
     sslExpired: sslIsExpired,
+    queryDate: formattedDate,
+    nsMissingDNS: nsNotFound,
+    nsClosed: ns53closed,
+    nsFiltered: ns53filtered,
     anotherValue: "1",
   };
 };
