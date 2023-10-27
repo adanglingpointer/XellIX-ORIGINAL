@@ -7,6 +7,8 @@ http://108.175.11.49:3031/{domain}
 
 ### Work Log
 
+- October 26, 2023 : Added query sanitization
+
 - October 25, 2023 : Added caching for queries; added GET route for easy querying via browser
 
 - October 23, 2023 : Fetch latest WordPress version; lookup registrar; lookup name servers; resolve SSL expiry date

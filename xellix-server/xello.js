@@ -29,12 +29,21 @@ app.post("/", async (request, response) => {
   console.log("we received a request: \n" + requestData);
   let lookupMode;
   const ipRegex = /(\d{1,3}.){4}/;
-  if (ipRegex.test(requestData)) {
-    lookupMode = "i"; // IP Address
-    let lookupDomain = requestData;
-    let sendResponse = await scanDomain(lookupDomain);
-    response.send(sendResponse);
-  } else {
+  if (requestData == "favicon.ico") {
+    response.send(" ");
+    return;
+  }
+  let sanitizeRegex = new RegExp(`[{};'"?\>\<\~\`!@#$%^&\*()_=\+\\s\\]\\[\|]+`);
+  if (sanitizeRegex.test(requestData)) {
+    response.send(" ");
+    return;
+  }
+  // if (ipRegex.test(requestData)) {
+  //   lookupMode = "i"; // IP Address
+  //   let lookupDomain = requestData;
+  //   let sendResponse = await scanDomain(lookupDomain);
+  //   response.send(sendResponse);
+  // } else {
     let lookupDomain = requestData;
 
     const path = `scans/${lookupDomain}`;
@@ -42,23 +51,23 @@ app.post("/", async (request, response) => {
     // Check if file exists
     fs.access(path, fs.constants.F_OK, async (err) => {
       if (err) {
-        console.log("File does not exist. Creating file...");
+        //console.log("File does not exist. Creating file...");
         let sendResponse = await scanDomain(lookupDomain);
         response.send(sendResponse);
         fs.writeFile(path, JSON.stringify(sendResponse), (err) => {
           if (err) throw err;
-          console.log("File saved!");
+          //console.log("File saved!");
         });
       } else {
-        console.log("File exists. Reading file...");
+        //console.log("File exists. Reading file...");
         fs.readFile(path, "utf8", (err, data) => {
           if (err) throw err;
-          console.log("File contents:", data);
+          //console.log("File contents:", data);
           response.send(data);
         });
       }
     });
-  }
+  // }
 });
 
 app.get("/:target", async (request, response) => {
@@ -67,12 +76,21 @@ app.get("/:target", async (request, response) => {
   console.log("we received a request: \n" + requestData);
   let lookupMode;
   const ipRegex = /(\d{1,3}.){4}/;
-  if (ipRegex.test(requestData)) {
-    lookupMode = "i"; // IP Address
-    let lookupDomain = requestData;
-    let sendResponse = await scanDomain(lookupDomain);
-    response.send(sendResponse);
-  } else {
+  if (requestData == "favicon.ico") {
+    response.send(" ");
+    return;
+  }
+  let sanitizeRegex = new RegExp(`[{};'"?\>\<\~\`!@#$%^&\*()_=\+\\s\\]\\[\|]+`);
+  if (sanitizeRegex.test(requestData)) {
+    response.send(" ");
+    return;
+  }
+  // if (ipRegex.test(requestData)) {
+  //   lookupMode = "i"; // IP Address
+  //   let lookupDomain = requestData;
+  //   let sendResponse = await scanDomain(lookupDomain);
+  //   response.send(sendResponse);
+  // } else {
     let lookupDomain = requestData;
 
     const path = `scans/${lookupDomain}`;
@@ -80,23 +98,23 @@ app.get("/:target", async (request, response) => {
     // Check if file exists
     fs.access(path, fs.constants.F_OK, async (err) => {
       if (err) {
-        console.log("File does not exist. Creating file...");
+        //console.log("File does not exist. Creating file...");
         let sendResponse = await scanDomain(lookupDomain);
         response.send(sendResponse);
         fs.writeFile(path, JSON.stringify(sendResponse), (err) => {
           if (err) throw err;
-          console.log("File saved!");
+          //console.log("File saved!");
         });
       } else {
-        console.log("File exists. Reading file...");
+        //console.log("File exists. Reading file...");
         fs.readFile(path, "utf8", (err, data) => {
           if (err) throw err;
-          console.log("File contents:", data);
+          //console.log("File contents:", data);
           response.send(data);
         });
       }
     });
-  }
+  // }
 });
 
 app.listen(process.env.PORT || 3031, () => {
@@ -123,13 +141,13 @@ function deleteOldFiles() {
     const timeDiffInMinutes = timeDiff / (1000 * 60);
 
     // Check if the time difference is greater than 1 minute
-    if (timeDiffInMinutes > 1) {
+    if (timeDiffInMinutes > 2) {
       // Delete the file using fs.unlinkSync
       fs.unlinkSync(filePath);
 
       console.log(`File ${filePath} deleted`);
     } else {
-      console.log(`File ${filePath} is not old enough`);
+      //console.log(`File ${filePath} is not old enough`);
     }
   }
 }
@@ -169,7 +187,7 @@ const scanPorts = async (domain) => {
   }
 };
 
-//  If Plesk is detected, we will traceroute and find version.
+//  If Plesk is detected, we will find version.
 const pleskScan = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
@@ -327,7 +345,6 @@ const fetchLatestWordPress = async () => {
 const whoIsLookup = async (domain) => {
   //  Resolve root domain (remove subdomains)
   let withoutSubdomain = domain.split(".").slice(-2).join(".");
-  console.log(withoutSubdomain);
 
   try {
     const { stdout, stderr } = await promisify(exec)(
@@ -418,8 +435,6 @@ const scanDomain = async (domain) => {
           currentVersionObject = data;
         })
         .catch((error) => console.error(error));
-
-      console.log("currentVersionName " + currentVersionName);
     } else {
       //  Port 8443 is open, but we can't find Plesk version used
       targetPleskVersionName = "unknown";
@@ -464,14 +479,13 @@ const scanDomain = async (domain) => {
     // rDNS address found
     let rdnsMatch = rdnsRegex.exec(returnedScan);
     var ptrRecord = rdnsMatch.groups.rdnsRecord;
-    console.log(ptrRecord);
   } else {
     var ptrRecord = "undefined";
   }
 
   //  Use a dig command to find MX records
   let mxReturned = await digForMx(domain);
-  console.log(mxReturned);
+  //console.log(mxReturned);
   let mxRegex = new RegExp(`IN\\s+MX\\s+\\d{1,2}\\s+(.+)\\.`, "gi");
   let mxArray;
   let foundMxArray = [];
@@ -492,8 +506,13 @@ const scanDomain = async (domain) => {
     foundMxArray = "missing";
   }
 
+  console.log("foundMxArray: " + foundMxArray);
+
+  foundMissingMx = [];
+
   //  Lookup IP address for each MX record
   foundMxArray.forEach(async (mxRecord) => {
+    console.log("we are pinging " + mxRecord);
     let mailARecord = await pingMx(mxRecord);
     let pingMxRegex = new RegExp(
       `PING\\s${mxRecord}\\s\\((?<mxIpFound>\\d{1,4}\\.\\d{1,4}\\.\\d{1,4}\\.\\d{1,4})`
@@ -564,12 +583,10 @@ const scanDomain = async (domain) => {
     `[Ll]ocation:\\s+(?<redirectLocation>.+)[\\b\\s\\rl\\n]`
   );
   while (curlRedirectRegex.test(detectWordpress)) {
-    console.log(detectWordpress);
     let newLocationMatch = curlRedirectRegex.exec(detectWordpress);
     newLocation = newLocationMatch.groups.redirectLocation;
     detectWordpress = await curlForWordpress(newLocation);
   }
-  console.log(detectWordpress);
 
   let wpLoginRegex = new RegExp(`HTTP/2\\s+200`);
   if (wpLoginRegex.test(detectWordpress)) {
@@ -581,7 +598,6 @@ const scanDomain = async (domain) => {
     if (phpVersionRegex.test(detectWordpress)) {
       let phpVersionMatch = phpVersionRegex.exec(detectWordpress);
       var phpVersionFound = phpVersionMatch.groups.phpVersionDetected;
-      console.log(phpVersionFound);
     } else {
       var phpVersionFound = "undetected";
     }
@@ -592,11 +608,8 @@ const scanDomain = async (domain) => {
   }
 
   if (wordPress === "detected") {
-    //console.log("looking for WP at " + newLocation);
     var wordPressVersion = await fetchWordPressVersion(newLocation);
-    console.log("target WP: " + wordPressVersion);
     var latestWordPress = await fetchLatestWordPress();
-    console.log("latest WP: " + latestWordPress);
   } else {
     var wordPressVersion = "undetected";
     var latestWordPress = "undetected";
@@ -612,7 +625,6 @@ const scanDomain = async (domain) => {
     let whoIsMatch = whoIsLookupRegex.exec(whoIsLookupResults);
     let registrarMatchRaw = whoIsMatch.groups.registrarFound;
     registrarMatch = registrarMatchRaw.toLowerCase();
-    console.log("registrar found: " + registrarMatch);
   } else {
     registrarMatch = "undefined";
   }
@@ -633,11 +645,7 @@ const scanDomain = async (domain) => {
         nameServerMatch.groups.nameServerFound.toLowerCase()
       )
     ) {
-      //
-      console.log(
-        "already exists: " +
-          nameServerMatch.groups.nameServerFound.toLowerCase()
-      );
+      // Already exists in array
     } else {
       nameServerArray.push(
         nameServerMatch.groups.nameServerFound.toLowerCase()
@@ -651,7 +659,6 @@ const scanDomain = async (domain) => {
 
   //  Test port 53 TCP & UDP on all name servers
   nameServerArray.forEach(async (nameServer) => {
-    console.log("testing NS: " + nameServer);
     let is53open = await testPort53(nameServer);
     let missingARecordRegex = new RegExp(`Failed to resolve`);
     if (missingARecordRegex.test(is53open)) {
@@ -685,7 +692,6 @@ const scanDomain = async (domain) => {
   if (sslDateRegex.test(sslDateLookup)) {
     let sslDateMatch = sslDateRegex.exec(sslDateLookup);
     sslExpiryDate = sslDateMatch.groups.sslExpiryDateFound;
-    console.log("sslExpiryDate is " + sslExpiryDate);
 
     /* Formatting date and time nicely */
 
@@ -755,6 +761,7 @@ const scanDomain = async (domain) => {
     currentPleskVersion: currentVersionNumber,
     targetWordPressVersion: wordPressVersion,
     currentWordPressVersion: latestWordPress,
+    targetPhpVersion: phpVersionFound,
     domainMainIp: primaryIpAddress,
     domainSecondaryIps: secondaryIpAddresses,
     reverseDNS: ptrRecord,
@@ -766,10 +773,10 @@ const scanDomain = async (domain) => {
     nameServers: nameServerArray,
     sslExpiry: sslExpiryDate,
     sslExpired: sslIsExpired,
-    queryDate: formattedDate,
     nsMissingDNS: nsNotFound,
     nsClosed: ns53closed,
     nsFiltered: ns53filtered,
+    queryDate: formattedDate,
     anotherValue: "1",
   };
 };
