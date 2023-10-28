@@ -7,6 +7,8 @@ http://108.175.11.49:3031/{domain}
 
 ### Work Log
 
+- October 27, 2023 : Added wildcard CORS to server for web client requests; started work on React web client
+
 - October 26, 2023 : Added query sanitization
 
 - October 25, 2023 : Added caching for queries; added GET route for easy querying via browser

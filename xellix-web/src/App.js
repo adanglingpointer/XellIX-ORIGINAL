@@ -1,11 +1,11 @@
 import { useState } from "react";
-import XellIX from "./core/XellIX";
+import Xello from "./core/Xello";
 
 function App() {
-  const [lookupStatus, setLookupStatus] = useState("rest");
+  
 
   return (
-    <XellIX/>
+    <Xello/>
   );
 }
 
