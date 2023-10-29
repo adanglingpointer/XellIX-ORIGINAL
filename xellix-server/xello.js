@@ -1,7 +1,3 @@
-//  TODO:
-//    Fix mxRegex2
-//     - it fails on MX with dashes - (i.e., apple.com has mx-in-rno.apple.com)
-
 // ------------ //
 /* = Requires = */
 // ------------ //
@@ -24,16 +20,16 @@ const { json } = require("body-parser");
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(function(req, res, next) {
-  res.header('Content-Type', 'application/json;charset=UTF-8')
-  res.header('Access-Control-Allow-Credentials', true)
-  res.header('Access-Control-Allow-Origin', '*')
+app.use(function (req, res, next) {
+  res.header("Content-Type", "application/json;charset=UTF-8");
+  res.header("Access-Control-Allow-Credentials", true);
+  res.header("Access-Control-Allow-Origin", "*");
   res.header(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept'
-  )
-  next()
-})
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  next();
+});
 
 app.post("/", async (request, response) => {
   const requestData = request.query.data;
@@ -55,29 +51,29 @@ app.post("/", async (request, response) => {
   //   let sendResponse = await scanDomain(lookupDomain);
   //   response.send(sendResponse);
   // } else {
-    let lookupDomain = requestData;
+  let lookupDomain = requestData;
 
-    const path = `scans/${lookupDomain}`;
+  const path = `scans/${lookupDomain}`;
 
-    // Check if file exists
-    fs.access(path, fs.constants.F_OK, async (err) => {
-      if (err) {
-        //console.log("File does not exist. Creating file...");
-        let sendResponse = await scanDomain(lookupDomain);
-        response.send(sendResponse);
-        fs.writeFile(path, JSON.stringify(sendResponse), (err) => {
-          if (err) throw err;
-          //console.log("File saved!");
-        });
-      } else {
-        //console.log("File exists. Reading file...");
-        fs.readFile(path, "utf8", (err, data) => {
-          if (err) throw err;
-          //console.log("File contents:", data);
-          response.send(data);
-        });
-      }
-    });
+  // Check if file exists
+  fs.access(path, fs.constants.F_OK, async (err) => {
+    if (err) {
+      //console.log("File does not exist. Creating file...");
+      let sendResponse = await scanDomain(lookupDomain);
+      response.send(sendResponse);
+      fs.writeFile(path, JSON.stringify(sendResponse), (err) => {
+        if (err) throw err;
+        //console.log("File saved!");
+      });
+    } else {
+      //console.log("File exists. Reading file...");
+      fs.readFile(path, "utf8", (err, data) => {
+        if (err) throw err;
+        //console.log("File contents:", data);
+        response.send(data);
+      });
+    }
+  });
   // }
 });
 
@@ -102,29 +98,29 @@ app.get("/:target", async (request, response) => {
   //   let sendResponse = await scanDomain(lookupDomain);
   //   response.send(sendResponse);
   // } else {
-    let lookupDomain = requestData;
+  let lookupDomain = requestData;
 
-    const path = `scans/${lookupDomain}`;
+  const path = `scans/${lookupDomain}`;
 
-    // Check if file exists
-    fs.access(path, fs.constants.F_OK, async (err) => {
-      if (err) {
-        //console.log("File does not exist. Creating file...");
-        let sendResponse = await scanDomain(lookupDomain);
-        response.send(sendResponse);
-        fs.writeFile(path, JSON.stringify(sendResponse), (err) => {
-          if (err) throw err;
-          //console.log("File saved!");
-        });
-      } else {
-        //console.log("File exists. Reading file...");
-        fs.readFile(path, "utf8", (err, data) => {
-          if (err) throw err;
-          //console.log("File contents:", data);
-          response.send(data);
-        });
-      }
-    });
+  // Check if file exists
+  fs.access(path, fs.constants.F_OK, async (err) => {
+    if (err) {
+      //console.log("File does not exist. Creating file...");
+      let sendResponse = await scanDomain(lookupDomain);
+      response.send(sendResponse);
+      fs.writeFile(path, JSON.stringify(sendResponse), (err) => {
+        if (err) throw err;
+        //console.log("File saved!");
+      });
+    } else {
+      //console.log("File exists. Reading file...");
+      fs.readFile(path, "utf8", (err, data) => {
+        if (err) throw err;
+        //console.log("File contents:", data);
+        response.send(data);
+      });
+    }
+  });
   // }
 });
 
@@ -504,17 +500,14 @@ const scanDomain = async (domain) => {
   mxRegex.lastIndex = 0; // reset the last index
   //  Add each MX record to an array
   while ((mxArray = mxRegex.exec(mxReturned)) !== null) {
+    console.log("mxArray = " + mxArray);
     let mxRegex2 = new RegExp(
-      `IN\\s+MX\\s+\\d{1,2}\\s+(?<mxRecordFound>\\w+\\.\\w+\\.\\w+)\\.`
+      `IN\\s+MX\\s+\\d{1,2}\\s+(?<mxRecordFound>.+)\\.[\\r\\n\\rl\\s\\nl]+`
     );
-    let mxRegexMatch2 = mxRegex2.exec(mxArray);
-    if (mxRegexMatch2.groups.mxRecordFound) {
+    let mxRegexMatch2 = mxRegex2.exec(mxReturned);
+    if (mxRegex2.test(mxReturned)) {
       foundMxArray.push(mxRegexMatch2.groups.mxRecordFound);
     }
-  }
-  if (foundMxArray == []) {
-    //  No MX records found
-    foundMxArray = "missing";
   }
 
   console.log("foundMxArray: " + foundMxArray);
@@ -537,7 +530,7 @@ const scanDomain = async (domain) => {
     let pingMissingRegex = new RegExp("Name or service not known");
     if (pingMissingRegex.test(mailARecord)) {
       //  Add each invalid MX record to an array
-      foundMissingMx.push(mailARecord);
+      foundMissingMx.push(mxRecord);
     }
   });
 
