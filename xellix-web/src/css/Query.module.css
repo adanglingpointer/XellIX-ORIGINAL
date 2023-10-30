@@ -9,8 +9,12 @@
     animation: form-appears 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+.lbox {
+  margin-top: 2rem;
+}
+
 .lookup {
-  position:fixed;
+
   margin-top: 14rem;
   margin-left: auto;
   margin-right: auto;
@@ -20,14 +24,23 @@
 }
 
 .infopanel {
-  position: fixed;
-  margin-top: 20rem;
+ position: inherit;
+  margin-top: 2rem;
   margin-left: auto;
   margin-right: auto;
   left: 50%;
   right: 50%;
+  clear: both;
   text-align: center;
   width: 50%;
+}
+
+.infopanel h2 {
+  background-color:steelblue;
+}
+
+.infopanel h3 {
+  background-color: lightsteelblue;
 }
 
   @keyframes form-appears {

@@ -492,7 +492,6 @@ const scanDomain = async (domain) => {
 
   //  Use a dig command to find MX records
   let mxReturned = await digForMx(domain);
-  //console.log(mxReturned);
   let mxRegex = new RegExp(`IN\\s+MX\\s+\\d{1,2}\\s+(.+)\\.`, "gi");
   let mxArray;
   let foundMxArray = [];
@@ -502,10 +501,10 @@ const scanDomain = async (domain) => {
   while ((mxArray = mxRegex.exec(mxReturned)) !== null) {
     console.log("mxArray = " + mxArray);
     let mxRegex2 = new RegExp(
-      `IN\\s+MX\\s+\\d{1,2}\\s+(?<mxRecordFound>.+)\\.[\\r\\n\\rl\\s\\nl]+`
+    `IN\\s+MX\\s+\\d{1,2}\\s+(?<mxRecordFound>[\\w\\d\\.\\-]+)\\.`
     );
-    let mxRegexMatch2 = mxRegex2.exec(mxReturned);
-    if (mxRegex2.test(mxReturned)) {
+    let mxRegexMatch2 = mxRegex2.exec(mxArray);
+    if (mxRegex2.test(mxArray)) {
       foundMxArray.push(mxRegexMatch2.groups.mxRecordFound);
     }
   }
