@@ -9,7 +9,14 @@ const DomainQuery = (props) => {
   const inputRef = useRef(null);
 
   const fetchResponse = async () => {
-    let domain = inputRef.current.value;
+    props.changeLookupStatus();
+    let tdomain = inputRef.current.value;
+    let domain = tdomain.trim();
+    if (domain === null || domain === "" || domain === "undefined") {
+      console.log("no domain");
+      inputRef.current.value = "";
+      return;
+    }
     console.log("domain: " + domain);
     const response = await fetch(
       //`http://108.175.11.49:3031/google.com`
@@ -53,7 +60,7 @@ const DomainQuery = (props) => {
   return (
     <div className={classes.query}>
       <input type="text" ref={inputRef} />
-      <button onClick={fetchResponse} onMouseDown={props.changeLookupStatus}>
+      <button onClick={fetchResponse}>
         click
       </button>
     </div>

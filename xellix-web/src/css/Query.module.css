@@ -1,5 +1,5 @@
 .query {
-    position:fixed;
+    position:inherit;
     top: 10rem;
     margin-left: auto;
     margin-right: auto;
@@ -14,33 +14,63 @@
 }
 
 .lookup {
-
-  margin-top: 14rem;
+  margin-top: 7rem;
   margin-left: auto;
   margin-right: auto;
   left: 50%;
   right: 50%;
   text-align: center;
 }
+
+.infopaneld, .infopanelp {
+  position: inherit;
+   margin-left: 0.5rem;
+   margin-right: 0.5rem;
+   clear: both;
+   text-align: center;
+   border-style:dotted;
+   border-radius: 0.75rem;
+   border-color:rgba(176, 196, 222, 0.5);
+   padding: 0.1rem 0.7rem;
+ }
 
 .infopanel {
  position: inherit;
   margin-top: 2rem;
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
   left: 50%;
   right: 50%;
   clear: both;
   text-align: center;
-  width: 50%;
+  display:inline-grid;
+  border-style:dotted;
+  border-radius: 0.75rem;
+  border-color:rgba(176, 196, 222, 0.5);
+  padding: 0.1rem 0.7rem;
 }
 
-.infopanel h2 {
+.infopaneld h2 {
   background-color:steelblue;
+}
+
+.infopanelp h2 {
+  background-color:tomato;
 }
 
 .infopanel h3 {
   background-color: lightsteelblue;
+}
+
+.query {
+  text-shadow: 1px;
+  text-decoration: wavy;
+  font-size: 8pt;
+}
+
+ul {
+  list-style-type: none;
+  text-align: left;
 }
 
   @keyframes form-appears {
