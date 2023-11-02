@@ -19,8 +19,8 @@ const DomainQuery = (props) => {
     }
     console.log("domain: " + domain);
     const response = await fetch(
-      //`http://108.175.11.49:3031/google.com`
-      `http://108.175.11.49:3031/${domain}`
+    //  `http://108.175.11.49:3031/${domain}`
+    `https://xellixapi.unlimitedweb.space/${domain}`
     );
     if (!response.ok) {
       //throw new Error("Whoopsies! We have an error =[");
@@ -61,7 +61,7 @@ const DomainQuery = (props) => {
     <div className={classes.query}>
       <input type="text" ref={inputRef} />
       <button onClick={fetchResponse}>
-        click
+        lookup
       </button>
     </div>
   );

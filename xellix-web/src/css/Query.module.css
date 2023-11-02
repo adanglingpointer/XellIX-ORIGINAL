@@ -48,6 +48,7 @@
   border-radius: 0.75rem;
   border-color:rgba(176, 196, 222, 0.5);
   padding: 0.1rem 0.7rem;
+  max-width: 30%;
 }
 
 .infopaneld h2 {

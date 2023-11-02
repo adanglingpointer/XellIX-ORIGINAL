@@ -20,17 +20,20 @@ const { json } = require("body-parser");
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(function (req, res, next) {
-  res.header("Content-Type", "application/json;charset=UTF-8");
-  res.header("Access-Control-Allow-Credentials", true);
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
-  );
+app.use(function(req, res, next) {
+  res.header('Content-Type', 'application/json;charset=UTF-8');
+  res.header('Access-Control-Allow-Credentials', true);
+	
+  if (req.headers.origin === 'https://xellix.unlimitedweb.space') {
+    res.header('Access-Control-Allow-Origin', 'https://xellix.unlimitedweb.space');
+  } else {
+    //res.header('Access-Control-Allow-Origin', '*');
+  }
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   next();
 });
 
+/*
 app.post("/", async (request, response) => {
   const requestData = request.query.data;
   console.log("we received a request: \n" + requestData);
@@ -76,6 +79,7 @@ app.post("/", async (request, response) => {
   });
   // }
 });
+*/
 
 app.get("/:target", async (request, response) => {
   const requestData = request.params.target;
@@ -87,7 +91,7 @@ app.get("/:target", async (request, response) => {
     response.send(" ");
     return;
   }
-  let sanitizeRegex = new RegExp(`[{};'"?\>\<\~\`!@#$%^&\*()_=\+\\s\\]\\[\|]+`);
+  let sanitizeRegex = new RegExp(`[{};'"?\>\<\~\`!@#$%^&\*()_=\+\\s\\]\\[\|:]+`);
   if (sanitizeRegex.test(requestData)) {
     response.send(" ");
     return;
@@ -98,7 +102,7 @@ app.get("/:target", async (request, response) => {
   //   let sendResponse = await scanDomain(lookupDomain);
   //   response.send(sendResponse);
   // } else {
-  let lookupDomain = requestData;
+  let lookupDomain = requestData.toLowerCase();
 
   const path = `scans/${lookupDomain}`;
 
@@ -179,10 +183,11 @@ var foundMissingMx = [];
 /* = Scanners = */
 // ------------ //
 
-//  Scan all ports with nmap.  -F for faster scanning.  -sS to touch lightly.
+//  Scan all ports with nmap.  -F for faster scanning
 const scanPorts = async (domain) => {
+  console.log("we are in scanPorts");
   try {
-    const { stdout, stderr } = await promisify(exec)(`nmap -F -sS ${domain}`);
+    const { stdout, stderr } = await promisify(exec)(`nmap -F ${domain}`);
     if (stdout) {
       return stdout;
     }
@@ -196,11 +201,10 @@ const scanPorts = async (domain) => {
 
 //  If Plesk is detected, we will find version.
 const pleskScan = async (domain) => {
+  console.log("we are in pleskScan");
   try {
     const { stdout, stderr } = await promisify(exec)(
-      //      `nmap -A -p 8443 ${domain}`
-      // `nmap -sC -sS --traceroute -F ${domain}`
-      `nmap -sC -sS -p 8443 ${domain}`
+      `nmap -sC -p 8443 ${domain}`
     );
     if (stdout) {
       return stdout;
@@ -215,6 +219,7 @@ const pleskScan = async (domain) => {
 
 //  Lookup most recent release version for Plesk
 const pleskVersionMatchFunction = async () => {
+  console.log("we are in pleskVersionMatchFunction");
   return axios
     .get("https://docs.plesk.com/release-notes/obsidian/change-log/")
     .then(async (response) => {
@@ -223,8 +228,13 @@ const pleskVersionMatchFunction = async () => {
       );
       let currentVersionMatch = await pleskReleaseRegex.exec(response.data);
 
-      currentVersionName = currentVersionMatch.groups.versionName;
-      currentVersionNumber = currentVersionMatch.groups.versionNumber;
+      if (pleskReleaseRegex.test(response.data)) {
+        currentVersionName = currentVersionMatch.groups.versionName;
+        currentVersionNumber = currentVersionMatch.groups.versionNumber;
+      } else {
+      currentVersionName = "undetected";
+        currentVersionNumber = "undetected";
+      }
 
       return [currentVersionName, currentVersionNumber];
     })
@@ -235,21 +245,23 @@ const pleskVersionMatchFunction = async () => {
 
 //  Lookup domain's MX records
 const digForMx = async (domain) => {
+  console.log("we are in digForMx");
   try {
     const { stdout, stderr } = await promisify(exec)(`dig mx ${domain}`);
     if (stdout) {
       return stdout;
     }
     if (stderr) {
-      return "error: " + stderr;
+      return "";
     }
   } catch (err) {
-    return "error: " + err;
+    return "";
   }
 };
 
 //  Resolve MX records to IP
 const pingMx = async (mailDomain) => {
+  console.log("we are in pingMx");
   try {
     const { stdout, stderr } = await promisify(exec)(`ping ${mailDomain} -c 1`);
     if (stdout) {
@@ -265,6 +277,7 @@ const pingMx = async (mailDomain) => {
 
 //  Lookup SPF record
 const digForTxt = async (domain) => {
+  console.log("we are in digForTxt");
   try {
     const { stdout, stderr } = await promisify(exec)(`dig txt ${domain}`);
     if (stdout) {
@@ -280,21 +293,23 @@ const digForTxt = async (domain) => {
 
 //  Lookup hostname
 const hostScanForName = async (targetIp) => {
+  console.log("we are in hostScanForName");
   try {
     const { stdout, stderr } = await promisify(exec)(`host ${targetIp}`);
     if (stdout) {
       return stdout;
     }
     if (stderr) {
-      return "error: " + stderr;
+      return "undefined";
     }
   } catch (err) {
-    return "error: " + err;
+    return "undefined";
   }
 };
 
 //  Detect if WordPress exists & PHP version
 const curlForWordpress = async (domain) => {
+  console.log("we are in curlForWordpress");
   try {
     const { stdout, stderr } = await promisify(exec)(
       `curl -I ${domain}/wp-login.php`
@@ -312,6 +327,7 @@ const curlForWordpress = async (domain) => {
 
 //  If WordPress is detected, find the version
 const fetchWordPressVersion = async (url) => {
+  console.log("we are in fetchWordPressVersion");
   return axios
     .get(url)
     .then(async (response) => {
@@ -330,6 +346,7 @@ const fetchWordPressVersion = async (url) => {
 
 //  Fetch the latest WordPress release version
 const fetchLatestWordPress = async () => {
+  console.log("we are in fetchLatestWordPress");
   return axios
     .get("https://wordpress.org/download/releases/")
     .then(async (response) => {
@@ -350,6 +367,7 @@ const fetchLatestWordPress = async () => {
 
 //  WhoIs lookup
 const whoIsLookup = async (domain) => {
+  console.log("we are in whoIsLookup");
   //  Resolve root domain (remove subdomains)
   let withoutSubdomain = domain.split(".").slice(-2).join(".");
 
@@ -370,9 +388,10 @@ const whoIsLookup = async (domain) => {
 
 //  If 443 is open, detect SSL date
 const lookupSSL = async (domain) => {
+  console.log("we are in lookupSSL");
   try {
     const { stdout, stderr } = await promisify(exec)(
-      `nmap -sS -sC -p 443 ${domain}`
+      `nmap -sC -p 443 ${domain}`
     );
     if (stdout) {
       return stdout;
@@ -386,9 +405,10 @@ const lookupSSL = async (domain) => {
 };
 
 const testPort53 = async (domain) => {
+  console.log("we are in testPort53");
   try {
     const { stdout, stderr } = await promisify(exec)(
-      `nmap -sS -sU -p 53 ${domain}`
+      `nmap -sU -p 53 ${domain}`
     );
     if (stdout) {
       return stdout;
@@ -570,13 +590,19 @@ const scanDomain = async (domain) => {
   //  Lookup hostname
   let hostScanResults = await hostScanForName(primaryIpAddress);
   let hostnameRegex = new RegExp(
-    `domain name pointer (?<foundHostname>[\\w\\d\\..]+)\\.`
+    `domain name pointer (?<foundHostname>[\\w\\d\\..\\-]+)\\.`
   );
   if (hostnameRegex.test(hostScanResults)) {
     let hostnameMatch = hostnameRegex.exec(hostScanResults);
     serverHostname = hostnameMatch.groups.foundHostname;
   } else {
-    serverHostname = "undetected";
+	  let hostnameRegex2 = new RegExp(`has address (?<foundHostname>[\\w\\d\\..]+)[\\rl\\b\\s\\n${domain}]+`);
+	  if (hostnameRegex2.test(hostScanResults)) {
+	  let hostnameMatch2 = hostnameRegex2.exec(hostScanResults);
+    serverHostname = hostnameMatch2.groups.foundHostname;
+	  } else {
+	  	serverHostname = "undetected";
+	  }
   }
 
   var newLocation;
@@ -585,10 +611,15 @@ const scanDomain = async (domain) => {
   let curlRedirectRegex = new RegExp(
     `[Ll]ocation:\\s+(?<redirectLocation>.+)[\\b\\s\\rl\\n]`
   );
-  while (curlRedirectRegex.test(detectWordpress)) {
+  var curlRedirectLimit = 0;
+  while (curlRedirectRegex.test(detectWordpress) && curlRedirectLimit < 6) {
+    if (curlRedirectLimit >= 6) {
+      return;
+    }
     let newLocationMatch = curlRedirectRegex.exec(detectWordpress);
     newLocation = newLocationMatch.groups.redirectLocation;
     detectWordpress = await curlForWordpress(newLocation);
+    curlRedirectLimit++;
   }
 
   let wpLoginRegex = new RegExp(`HTTP/2\\s+200`);

@@ -1,11 +1,13 @@
 # XellIX
 
-XellIX is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently in beta, and can be accessed at:
+XellIX is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently v1.0.0, and can be accessed at:
 
-http://108.175.11.49:3031/{domain}
+https://xellix.unlimitedweb.space/
 
 
 ### Work Log
+
+- **November 1, 2023 (1.0.0) : Updated for production; It's alive!**
 
 - October 30, 2023 : Web client fully functional; will deploy soon
 
