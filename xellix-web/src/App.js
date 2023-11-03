@@ -8,21 +8,18 @@ function App() {
         <div className={classes.tab}>
           <button
             className={classes.tablinks}
-            onclick="openCity(event, 'London')"
           >
             Lookup
           </button>
           <button
             className={classes.inactivetablinks}
-            onclick="openCity(event, 'Paris')"
           >
             Fix
           </button>
           <button
             className={classes.inactivetablinks}
-            onclick="openCity(event, 'Tokyo')"
           >
-            Administer
+            Install
           </button>
         </div>
         <Xello />

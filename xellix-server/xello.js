@@ -30,7 +30,7 @@ app.use(function (req, res, next) {
       "https://xellix.unlimitedweb.space"
     );
   } else {
-    // res.header('Access-Control-Allow-Origin', '*');
+   // res.header("Access-Control-Allow-Origin", "*");
   }
   res.header(
     "Access-Control-Allow-Headers",
@@ -101,7 +101,7 @@ app.get("/:target", async (request, response) => {
     `[{};'"?\>\<\~\`!@#$%^&\*()_=\+\\s\\]\\[\|:]+`
   );
   if (sanitizeRegex.test(requestData)) {
-    response.send(" ");
+    response.send({ error: "error" });
     return;
   }
   // if (ipRegex.test(requestData)) {
@@ -812,6 +812,46 @@ const scanDomain = async (domain) => {
     // couldn't match the SSL date
     sslExpiryDate = "unknown";
     sslIsExpired = "unknown";
+    // Get today's date
+    var currentDate = new Date();
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const day = currentDate.getDate();
+    const hour = currentDate.getHours();
+    const minute = currentDate.getMinutes();
+    const second = currentDate.getSeconds();
+
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const monthName = monthNames[month];
+
+    // Convert the hour to 12-hour format and get the AM/PM indicator
+    let hour12 = hour % 12;
+    if (hour12 === 0) {
+      hour12 = 12;
+    }
+    const ampm = hour < 12 ? "AM" : "PM";
+
+    // Convert the minute and second to two-digit format using padStart()
+    const minute2 = minute.toString().padStart(2, "0");
+    //const second2 = second.toString().padStart(2, "0");
+
+    // Format the date and time
+    var formattedDate = `${monthName} ${day}, ${year} ${hour12}:${minute2} ${ampm} EST`;
   }
 
   return {
@@ -839,5 +879,6 @@ const scanDomain = async (domain) => {
     nsFiltered: ns53filtered,
     queryDate: formattedDate,
     anotherValue: "1",
+    error: "none",
   };
 };

@@ -6,7 +6,13 @@ const DomainQuery = (props) => {
     //
   });
 
+  var once = 0;
+
   const inputRef = useRef(null);
+
+  const clearInput = () => {
+
+  }
 
   const fetchResponse = async () => {
     props.changeLookupStatus();
@@ -20,7 +26,7 @@ const DomainQuery = (props) => {
     console.log("domain: " + domain);
     const response = await fetch(
       // `http://108.175.11.49:3031/${domain}`
-      `https://xellixapi.unlimitedweb.space/${domain}`
+       `https://xellixapi.unlimitedweb.space/${domain}`
     );
     if (!response.ok) {
       //throw new Error("Whoopsies! We have an error =[");
@@ -54,12 +60,13 @@ const DomainQuery = (props) => {
       nsClosed: responseData.nsClosed,
       nsFiltered: responseData.nsFiltered,
       queryDate: responseData.queryDate,
+      error: responseData.error
     });
   };
 
   return (
     <div className={classes.query}>
-      <input type="text" ref={inputRef} />
+      <input type="text" ref={inputRef} placeholder="domain name" />
       <button onClick={fetchResponse}>lookup</button>
     </div>
   );

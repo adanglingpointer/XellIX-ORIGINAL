@@ -34,7 +34,31 @@ const Xello = (props) => {
       console.log("we messed up");
       information = "";
     }
-    if (displayInfo.targetPleskName != "undetected") {
+    if (displayInfo.error && displayInfo.error === "error") {
+      console.log("displayInfo.error is " + displayInfo.error);
+      information = (
+        <div className={classes.lbox}>
+          <div className={classes.infopaneld}>
+            <p>
+              <h2>{displayInfo.queryDomain}</h2>
+              <p className={classes.query}>
+                Query Timestamp: {displayInfo.queryDate}
+              </p>
+            </p>
+          </div>
+  
+          <div className={classes.infopanelp}>
+            <h2>Error</h2>
+            <p>
+              Invalid query
+            </p>
+          </div>
+          </div>
+      );
+
+    } else  {
+      console.log("displayInfo.error is " + displayInfo.error);
+    if (displayInfo.targetPleskName != "undetected" && displayInfo.targetPleskName != "unknown") {
       if (
         displayInfo.currentPleskName === displayInfo.targetPleskName &&
         displayInfo.currentPleskVersion === displayInfo.targetPleskVersion
@@ -354,6 +378,7 @@ const Xello = (props) => {
         {problems}
       </div>
     );
+  }
   };
 
   return (
