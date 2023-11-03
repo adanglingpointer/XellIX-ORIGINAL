@@ -20,16 +20,22 @@ const { json } = require("body-parser");
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(function(req, res, next) {
-  res.header('Content-Type', 'application/json;charset=UTF-8');
-  res.header('Access-Control-Allow-Credentials', true);
-	
-  if (req.headers.origin === 'https://xellix.unlimitedweb.space') {
-    res.header('Access-Control-Allow-Origin', 'https://xellix.unlimitedweb.space');
+app.use(function (req, res, next) {
+  res.header("Content-Type", "application/json;charset=UTF-8");
+  res.header("Access-Control-Allow-Credentials", true);
+
+  if (req.headers.origin === "https://xellix.unlimitedweb.space") {
+    res.header(
+      "Access-Control-Allow-Origin",
+      "https://xellix.unlimitedweb.space"
+    );
   } else {
-    //res.header('Access-Control-Allow-Origin', '*');
+    // res.header('Access-Control-Allow-Origin', '*');
   }
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
   next();
 });
 
@@ -91,7 +97,9 @@ app.get("/:target", async (request, response) => {
     response.send(" ");
     return;
   }
-  let sanitizeRegex = new RegExp(`[{};'"?\>\<\~\`!@#$%^&\*()_=\+\\s\\]\\[\|:]+`);
+  let sanitizeRegex = new RegExp(
+    `[{};'"?\>\<\~\`!@#$%^&\*()_=\+\\s\\]\\[\|:]+`
+  );
   if (sanitizeRegex.test(requestData)) {
     response.send(" ");
     return;
@@ -232,7 +240,7 @@ const pleskVersionMatchFunction = async () => {
         currentVersionName = currentVersionMatch.groups.versionName;
         currentVersionNumber = currentVersionMatch.groups.versionNumber;
       } else {
-      currentVersionName = "undetected";
+        currentVersionName = "undetected";
         currentVersionNumber = "undetected";
       }
 
@@ -521,7 +529,7 @@ const scanDomain = async (domain) => {
   while ((mxArray = mxRegex.exec(mxReturned)) !== null) {
     console.log("mxArray = " + mxArray);
     let mxRegex2 = new RegExp(
-    `IN\\s+MX\\s+\\d{1,2}\\s+(?<mxRecordFound>[\\w\\d\\.\\-]+)\\.`
+      `IN\\s+MX\\s+\\d{1,2}\\s+(?<mxRecordFound>[\\w\\d\\.\\-]+)\\.`
     );
     let mxRegexMatch2 = mxRegex2.exec(mxArray);
     if (mxRegex2.test(mxArray)) {
@@ -596,13 +604,15 @@ const scanDomain = async (domain) => {
     let hostnameMatch = hostnameRegex.exec(hostScanResults);
     serverHostname = hostnameMatch.groups.foundHostname;
   } else {
-	  let hostnameRegex2 = new RegExp(`has address (?<foundHostname>[\\w\\d\\..]+)[\\rl\\b\\s\\n${domain}]+`);
-	  if (hostnameRegex2.test(hostScanResults)) {
-	  let hostnameMatch2 = hostnameRegex2.exec(hostScanResults);
-    serverHostname = hostnameMatch2.groups.foundHostname;
-	  } else {
-	  	serverHostname = "undetected";
-	  }
+    let hostnameRegex2 = new RegExp(
+      `has address (?<foundHostname>[\\w\\d\\..]+)[\\rl\\b\\s\\n${domain}]+`
+    );
+    if (hostnameRegex2.test(hostScanResults)) {
+      let hostnameMatch2 = hostnameRegex2.exec(hostScanResults);
+      serverHostname = hostnameMatch2.groups.foundHostname;
+    } else {
+      serverHostname = "undetected";
+    }
   }
 
   var newLocation;
@@ -727,6 +737,9 @@ const scanDomain = async (domain) => {
     let sslDateMatch = sslDateRegex.exec(sslDateLookup);
     sslExpiryDate = sslDateMatch.groups.sslExpiryDateFound;
 
+    // Convert sslExpiryDate to a Date object
+    var sslExpiryDateObj = new Date(sslExpiryDate);
+
     /* Formatting date and time nicely */
 
     // Force EST timing
@@ -734,6 +747,9 @@ const scanDomain = async (domain) => {
 
     // Get today's date
     var currentDate = new Date();
+
+    console.log("sslExpiryDateObj is " + sslExpiryDateObj);
+    console.log("currentDate is " + currentDate);
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -773,8 +789,19 @@ const scanDomain = async (domain) => {
     // Format the date and time
     var formattedDate = `${monthName} ${day}, ${year} ${hour12}:${minute2} ${ampm} EST`;
 
+    /*
     // Compare dates for SSL
     if (sslExpiryDate < currentDate) {
+      //console.log("SSL certificate has expired.");
+      sslIsExpired = "true";
+    } else {
+      //console.log("SSL certificate is still valid.");
+      sslIsExpired = "false";
+    }
+    */
+
+    // Compare dates for SSL
+    if (sslExpiryDateObj.getTime() < currentDate.getTime()) {
       //console.log("SSL certificate has expired.");
       sslIsExpired = "true";
     } else {
