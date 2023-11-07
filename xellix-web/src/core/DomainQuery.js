@@ -10,11 +10,15 @@ const DomainQuery = (props) => {
 
   const inputRef = useRef(null);
 
-  const clearInput = () => {
-
-  }
+  const clearInput = () => {};
 
   const fetchResponse = async () => {
+    var inputTrimmed = inputRef.current.value.trim();
+    if (inputTrimmed == "" || inputTrimmed == null) {
+      console.log("no domain");
+      inputRef.current.value = "";
+      return;
+    }
     props.changeLookupStatus();
     let tdomain = inputRef.current.value;
     let domain = tdomain.trim();
@@ -60,7 +64,7 @@ const DomainQuery = (props) => {
       nsClosed: responseData.nsClosed,
       nsFiltered: responseData.nsFiltered,
       queryDate: responseData.queryDate,
-      error: responseData.error
+      error: responseData.error,
     });
   };
 

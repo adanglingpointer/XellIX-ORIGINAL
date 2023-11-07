@@ -30,7 +30,7 @@ app.use(function (req, res, next) {
       "https://xellix.unlimitedweb.space"
     );
   } else {
-   // res.header("Access-Control-Allow-Origin", "*");
+    // res.header("Access-Control-Allow-Origin", "*");
   }
   res.header(
     "Access-Control-Allow-Headers",
@@ -38,54 +38,6 @@ app.use(function (req, res, next) {
   );
   next();
 });
-
-/*
-app.post("/", async (request, response) => {
-  const requestData = request.query.data;
-  console.log("we received a request: \n" + requestData);
-  let lookupMode;
-  const ipRegex = /(\d{1,3}.){4}/;
-  if (requestData == "favicon.ico") {
-    response.send(" ");
-    return;
-  }
-  let sanitizeRegex = new RegExp(`[{};'"?\>\<\~\`!@#$%^&\*()_=\+\\s\\]\\[\|]+`);
-  if (sanitizeRegex.test(requestData)) {
-    response.send(" ");
-    return;
-  }
-  // if (ipRegex.test(requestData)) {
-  //   lookupMode = "i"; // IP Address
-  //   let lookupDomain = requestData;
-  //   let sendResponse = await scanDomain(lookupDomain);
-  //   response.send(sendResponse);
-  // } else {
-  let lookupDomain = requestData;
-
-  const path = `scans/${lookupDomain}`;
-
-  // Check if file exists
-  fs.access(path, fs.constants.F_OK, async (err) => {
-    if (err) {
-      //console.log("File does not exist. Creating file...");
-      let sendResponse = await scanDomain(lookupDomain);
-      response.send(sendResponse);
-      fs.writeFile(path, JSON.stringify(sendResponse), (err) => {
-        if (err) throw err;
-        //console.log("File saved!");
-      });
-    } else {
-      //console.log("File exists. Reading file...");
-      fs.readFile(path, "utf8", (err, data) => {
-        if (err) throw err;
-        //console.log("File contents:", data);
-        response.send(data);
-      });
-    }
-  });
-  // }
-});
-*/
 
 app.get("/:target", async (request, response) => {
   const requestData = request.params.target;
@@ -320,7 +272,7 @@ const curlForWordpress = async (domain) => {
   console.log("we are in curlForWordpress");
   try {
     const { stdout, stderr } = await promisify(exec)(
-      `curl -I ${domain}/wp-login.php`
+      `curl -I ${domain}/wp-login.php --max-time 10`
     );
     if (stdout) {
       return stdout;
