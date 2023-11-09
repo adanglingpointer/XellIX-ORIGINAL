@@ -1,4 +1,4 @@
-import { useEffect, useRef, React } from "react";
+import { useEffect, useRef, useState, React } from "react";
 import classes from "../css/Query.module.css";
 
 const DomainQuery = (props) => {
@@ -7,6 +7,16 @@ const DomainQuery = (props) => {
   });
 
   var once = 0;
+
+  const [buttonState, setButtonState] = useState(classes.kdeg);
+
+  const buttonDown = () => {
+    setButtonState(classes.kde);
+  };
+
+  const buttonUp = () => {
+    setButtonState(classes.kdeg);
+  };
 
   const inputRef = useRef(null);
 
@@ -25,18 +35,10 @@ const DomainQuery = (props) => {
     const data = event.clipboardData.getData("text");
     if (pasteRegex.test(data)) {
       event.preventDefault();
-      inputRef.current.value += data.replace(pasteRegex, "");
     }
   };
 
   const fetchResponse = async () => {
-    var inputTrimmed = inputRef.current.value.trim();
-    if (inputTrimmed == "" || inputTrimmed == null) {
-      console.log("no domain");
-      inputRef.current.value = "";
-      return;
-    }
-    props.changeLookupStatus();
     let tdomain = inputRef.current.value;
     let domain = tdomain.trim();
     if (domain === null || domain === "" || domain === "undefined") {
@@ -44,10 +46,18 @@ const DomainQuery = (props) => {
       inputRef.current.value = "";
       return;
     }
+    let validDomainRegex = new RegExp(`[\\d\\w\\.\\-_]+\\.[\\w]{2,6}`);
+    if (!validDomainRegex.test(domain)) {
+      console.log("invalid domain");
+      return;
+    }
+
+    props.changeLookupStatus();
+
     console.log("domain: " + domain);
     const response = await fetch(
       // `http://108.175.11.49:3031/${domain}`
-       `https://xellixapi.unlimitedweb.space/${domain}`
+      `https://xellixapi.unlimitedweb.space/${domain}`
     );
     if (!response.ok) {
       //throw new Error("Whoopsies! We have an error =[");
@@ -94,7 +104,15 @@ const DomainQuery = (props) => {
         onPaste={validatePaste}
         placeholder="domain name"
       />
-      <button onClick={fetchResponse}>lookup</button>
+      <button
+        className={buttonState}
+        onMouseDown={buttonDown}
+        onMouseUp={buttonUp}
+        onMouseOut={buttonUp}
+        onClick={fetchResponse}
+      >
+        lookup
+      </button>
     </div>
   );
 };

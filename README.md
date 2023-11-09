@@ -1,11 +1,13 @@
 # XellIX
 
-XellIX is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently in version 1.0.4, and can be accessed at:
+XellIX is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently in version 1.0.5, and can be accessed at:
 
 https://xellix.unlimitedweb.space/
 
 
 ### Work Log
+
+- November 9, 2023 (1.0.5) : Bug fix in hostname lookup; increased timeout for port scan
 
 - November 8, 2023 (1.0.4) : Fixed many bugs by adding timeouts and preventing malformatted queries
 

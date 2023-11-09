@@ -10,7 +10,6 @@ const Xello = (props) => {
   const [lookupStatus, setLookupStatus] = useState("idle");
 
   const changeLookupStatus = () => {
-    //setLookupStatus("pending");
     setLookupStatus(<img src={loading} height="75px" />);
   };
 

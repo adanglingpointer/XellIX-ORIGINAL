@@ -30,7 +30,7 @@ app.use(function (req, res, next) {
       "https://xellix.unlimitedweb.space"
     );
   } else {
-    //  res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Origin", "*");
   }
   res.header(
     "Access-Control-Allow-Headers",
@@ -161,7 +161,7 @@ const scanPorts = async (domain) => {
   console.log("we are in scanPorts");
   try {
     const { stdout, stderr } = await promisify(exec)(`nmap -F ${domain}`, {
-      timeout: 4000,
+      timeout: 5000,
     });
     if (stdout) {
       return stdout;
@@ -586,7 +586,8 @@ const scanDomain = async (domain) => {
     serverHostname = hostnameMatch.groups.foundHostname;
   } else {
     let hostnameRegex2 = new RegExp(
-      `has address (?<foundHostname>[\\w\\d\\..]+)[\\rl\\b\\s\\n${domain}]+`
+      // `has address (?<foundHostname>[\\w\\d\\..]+)[\\rl\\b\\s\\n${domain}]+`
+      `has address (?<foundHostname>[\\w\\d\\..]+)[\\rl\\b\\s\\n]+`
     );
     if (hostnameRegex2.test(hostScanResults)) {
       let hostnameMatch2 = hostnameRegex2.exec(hostScanResults);

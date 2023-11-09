@@ -9,10 +9,16 @@ function App() {
   const [activeTab, setActiveTab] = useState(<Xello />);
 
   const changeTab = (parameter, event) => {
+    if (!parameter) {
+      return <Xello />;
+    }
     setActiveTab((prev) => {
       return parameter;
     });
   };
+
+  var xellexPlaceholder; // = <Xellex />;
+  var xelvePlaceholder; // = <Xelve />;
 
   return (
     <>
@@ -31,7 +37,7 @@ function App() {
           <button
             className={classes.inactivetablinks}
             onClick={() => {
-              changeTab(<Xellex />);
+              changeTab(xellexPlaceholder);
             }}
           >
             Fix
@@ -39,7 +45,7 @@ function App() {
           <button
             className={classes.inactivetablinks}
             onClick={() => {
-              changeTab(<Xelve />);
+              changeTab(xelvePlaceholder);
             }}
           >
             Install
