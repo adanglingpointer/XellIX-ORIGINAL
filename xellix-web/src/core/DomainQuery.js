@@ -10,7 +10,24 @@ const DomainQuery = (props) => {
 
   const inputRef = useRef(null);
 
-  const clearInput = () => {};
+  const preventKeys = (event) => {
+    const keyRegex = new RegExp(`[^\\d\\w\\.\\-_]`);
+    if (
+      keyRegex.test(event.key) ||
+      (event.code === "Minus" && event.shiftKey)
+    ) {
+      event.preventDefault();
+    }
+  };
+
+  const validatePaste = (event) => {
+    const pasteRegex = new RegExp(`[^\\d\\w\\.\\-_]`, "g");
+    const data = event.clipboardData.getData("text");
+    if (pasteRegex.test(data)) {
+      event.preventDefault();
+      inputRef.current.value += data.replace(pasteRegex, "");
+    }
+  };
 
   const fetchResponse = async () => {
     var inputTrimmed = inputRef.current.value.trim();
@@ -70,7 +87,13 @@ const DomainQuery = (props) => {
 
   return (
     <div className={classes.query}>
-      <input type="text" ref={inputRef} placeholder="domain name" />
+      <input
+        type="text"
+        ref={inputRef}
+        onKeyDown={preventKeys}
+        onPaste={validatePaste}
+        placeholder="domain name"
+      />
       <button onClick={fetchResponse}>lookup</button>
     </div>
   );

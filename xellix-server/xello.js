@@ -30,7 +30,7 @@ app.use(function (req, res, next) {
       "https://xellix.unlimitedweb.space"
     );
   } else {
-    // res.header("Access-Control-Allow-Origin", "*");
+    //  res.header("Access-Control-Allow-Origin", "*");
   }
   res.header(
     "Access-Control-Allow-Headers",
@@ -39,10 +39,12 @@ app.use(function (req, res, next) {
   next();
 });
 
-app.get("/:target", async (request, response) => {
-  const requestData = request.params.target;
-  //const requestData = request.query.data;
+// app.get("/:target", async (request, response) => {
+//   const requestData = request.params.target;
+app.get("/*", async (request, response) => {
+  const requestData = request.params[0].toString();
   console.log("we received a request: \n" + requestData);
+  console.log("from: " + request.ip);
   let lookupMode;
   const ipRegex = /(\d{1,3}.){4}/;
   if (requestData == "favicon.ico") {
@@ -56,12 +58,23 @@ app.get("/:target", async (request, response) => {
     response.send({ error: "error" });
     return;
   }
+  let endAtSlashRegex = new RegExp(`[\\/\]+`);
+  if (endAtSlashRegex.test(requestData)) {
+    response.send({ error: "error" });
+    return;
+  }
+  const keyRegex = new RegExp(`[\\s\\\\/\\:\\|"]`);
+  if (keyRegex.test(requestData)) {
+    response.send({ error: "error" });
+    return;
+  }
   // if (ipRegex.test(requestData)) {
   //   lookupMode = "i"; // IP Address
   //   let lookupDomain = requestData;
   //   let sendResponse = await scanDomain(lookupDomain);
   //   response.send(sendResponse);
   // } else {
+
   let lookupDomain = requestData.toLowerCase();
 
   const path = `scans/${lookupDomain}`;
@@ -147,7 +160,9 @@ var foundMissingMx = [];
 const scanPorts = async (domain) => {
   console.log("we are in scanPorts");
   try {
-    const { stdout, stderr } = await promisify(exec)(`nmap -F ${domain}`);
+    const { stdout, stderr } = await promisify(exec)(`nmap -F ${domain}`, {
+      timeout: 4000,
+    });
     if (stdout) {
       return stdout;
     }
@@ -164,7 +179,8 @@ const pleskScan = async (domain) => {
   console.log("we are in pleskScan");
   try {
     const { stdout, stderr } = await promisify(exec)(
-      `nmap -sC -p 8443 ${domain}`
+      `nmap -sC -p 8443 ${domain}`,
+      { timeout: 6000 }
     );
     if (stdout) {
       return stdout;
@@ -207,7 +223,9 @@ const pleskVersionMatchFunction = async () => {
 const digForMx = async (domain) => {
   console.log("we are in digForMx");
   try {
-    const { stdout, stderr } = await promisify(exec)(`dig mx ${domain}`);
+    const { stdout, stderr } = await promisify(exec)(`dig mx ${domain}`, {
+      timeout: 4000,
+    });
     if (stdout) {
       return stdout;
     }
@@ -223,7 +241,10 @@ const digForMx = async (domain) => {
 const pingMx = async (mailDomain) => {
   console.log("we are in pingMx");
   try {
-    const { stdout, stderr } = await promisify(exec)(`ping ${mailDomain} -c 1`);
+    const { stdout, stderr } = await promisify(exec)(
+      `ping ${mailDomain} -c 1`,
+      { timeout: 2000 }
+    );
     if (stdout) {
       return stdout;
     }
@@ -239,7 +260,9 @@ const pingMx = async (mailDomain) => {
 const digForTxt = async (domain) => {
   console.log("we are in digForTxt");
   try {
-    const { stdout, stderr } = await promisify(exec)(`dig txt ${domain}`);
+    const { stdout, stderr } = await promisify(exec)(`dig txt ${domain}`, {
+      timeout: 3000,
+    });
     if (stdout) {
       return stdout;
     }
@@ -255,7 +278,9 @@ const digForTxt = async (domain) => {
 const hostScanForName = async (targetIp) => {
   console.log("we are in hostScanForName");
   try {
-    const { stdout, stderr } = await promisify(exec)(`host ${targetIp}`);
+    const { stdout, stderr } = await promisify(exec)(`host ${targetIp}`, {
+      timeout: 5000,
+    });
     if (stdout) {
       return stdout;
     }
@@ -272,7 +297,8 @@ const curlForWordpress = async (domain) => {
   console.log("we are in curlForWordpress");
   try {
     const { stdout, stderr } = await promisify(exec)(
-      `curl -I ${domain}/wp-login.php --max-time 10`
+      `curl -I ${domain}/wp-login.php --max-time 10`,
+      { timeout: 6000 }
     );
     if (stdout) {
       return stdout;
@@ -333,7 +359,8 @@ const whoIsLookup = async (domain) => {
 
   try {
     const { stdout, stderr } = await promisify(exec)(
-      `whois ${withoutSubdomain}`
+      `whois ${withoutSubdomain}`,
+      { timeout: 5000 }
     );
     if (stdout) {
       return stdout;
@@ -351,7 +378,8 @@ const lookupSSL = async (domain) => {
   console.log("we are in lookupSSL");
   try {
     const { stdout, stderr } = await promisify(exec)(
-      `nmap -sC -p 443 ${domain}`
+      `nmap -sC -p 443 ${domain}`,
+      { timeout: 5000 }
     );
     if (stdout) {
       return stdout;
@@ -368,7 +396,8 @@ const testPort53 = async (domain) => {
   console.log("we are in testPort53");
   try {
     const { stdout, stderr } = await promisify(exec)(
-      `nmap -sU -p 53 ${domain}`
+      `nmap -sU -p 53 ${domain}`,
+      { timeout: 4000 }
     );
     if (stdout) {
       return stdout;
