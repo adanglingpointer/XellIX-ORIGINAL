@@ -1,13 +1,7 @@
-import { useEffect, useRef, useState, React } from "react";
+import { useRef, useState, React } from "react";
 import classes from "../css/Query.module.css";
 
 const DomainQuery = (props) => {
-  useEffect(() => {
-    //
-  });
-
-  var once = 0;
-
   const [buttonState, setButtonState] = useState(classes.kdeg);
 
   const buttonDown = () => {

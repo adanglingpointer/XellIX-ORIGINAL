@@ -30,7 +30,7 @@ app.use(function (req, res, next) {
       "https://xellix.unlimitedweb.space"
     );
   } else {
-    res.header("Access-Control-Allow-Origin", "*");
+    // res.header("Access-Control-Allow-Origin", "*");
   }
   res.header(
     "Access-Control-Allow-Headers",
@@ -320,10 +320,15 @@ const fetchWordPressVersion = async (url) => {
       let wpVersionRegex = new RegExp(
         `id='login-css' .+login.min.css\\?ver=(?<wpVersionFound>\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})`
       );
-      let wpVersionMatch = await wpVersionRegex.exec(response.data);
-      let wpVersionNumber = wpVersionMatch.groups.wpVersionFound;
 
-      return wpVersionNumber;
+      if (wpVersionRegex.test(response.data)) {
+        let wpVersionMatch = await wpVersionRegex.exec(response.data);
+        let wpVersionNumber = wpVersionMatch.groups.wpVersionFound;
+
+        return wpVersionNumber;
+      } else {
+        return "undefined";
+      }
     })
     .catch((error) => {
       console.error(error);
@@ -340,11 +345,17 @@ const fetchLatestWordPress = async () => {
         `\\<th class="wp-block-wporg-release-tables__cell-version" scope="row"\\>(?<latestWordPressFound>\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\\<`
       );
 
-      let wpLatestVersionMatch = await wpLatestVersionRegex.exec(response.data);
-      let wpLatestVersionNumber =
-        wpLatestVersionMatch.groups.latestWordPressFound;
+      if (wpLatestVersionRegex.test(response.data)) {
+        let wpLatestVersionMatch = await wpLatestVersionRegex.exec(
+          response.data
+        );
+        let wpLatestVersionNumber =
+          wpLatestVersionMatch.groups.latestWordPressFound;
 
-      return wpLatestVersionNumber;
+        return wpLatestVersionNumber;
+      } else {
+        return "undefined";
+      }
     })
     .catch((error) => {
       console.error(error);

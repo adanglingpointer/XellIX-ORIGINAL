@@ -7,6 +7,8 @@ https://xellix.unlimitedweb.space/
 
 ### Work Log
 
+- November 13, 2023 (1.0.6) : Bug fix in WordPress lookup; some preliminary work on installer tool
+
 - November 9, 2023 (1.0.5) : Bug fix in hostname lookup; increased timeout for port scan
 
 - November 8, 2023 (1.0.4) : Fixed many bugs by adding timeouts and preventing malformatted queries

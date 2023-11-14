@@ -1,0 +1,29 @@
+.modal {
+    position: absolute;
+    display: block;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    width: 500px;
+    height: 500px;
+    pointer-events: auto;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0,0,0,.2);
+    border-radius: 0.3rem;
+    outline: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.terminal {
+    background-color: black;
+    color: green;
+    font-family: "Courier New", Courier, monospace;
+    border: 2px solid green;
+    padding: 10px;
+    margin: 20px;
+    overflow: auto;
+    height: 250px;
+    width: 300px
+}

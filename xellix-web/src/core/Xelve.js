@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import classes from "../css/Xelve.module.css";
+import XelveModal from "./XelveModal.js"
+import Xellex from "./Xellex.js"
 
 // 𝕀𝕟𝕤𝕥𝕒𝕝𝕝𝕖𝕣
 
 const Xelve = (props) => {
   const [buttonState, setButtonState] = useState(classes.kdeg);
+  const [showModal, setShowModal] = useState(false)
 
   const buttonDown = () => {
     setButtonState(classes.kde);
@@ -13,6 +16,12 @@ const Xelve = (props) => {
   const buttonUp = () => {
     setButtonState(classes.kdeg);
   };
+
+  const xelveModal = () => {
+    setShowModal(!showModal);
+  }
+
+
 
   return (
     <p>
@@ -33,9 +42,11 @@ const Xelve = (props) => {
           onMouseDown={buttonDown}
           onMouseUp={buttonUp}
           onMouseOut={buttonUp}
+          onClick={xelveModal}
         >
           Continue
         </button>
+        {showModal ? <XelveModal/> : null}
       </span>
     </p>
   );
