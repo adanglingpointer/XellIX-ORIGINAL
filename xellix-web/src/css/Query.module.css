@@ -36,7 +36,18 @@ a {
   margin-left: 1px;
 }
 
-.kde:hover {
+.kdehover {
+  display: inline-block;
+  padding: 1px 9px;
+  font-size: 15px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  outline: none;
+  color: #fff;
+  border: 1px solid #3daee9;
+  border-radius: 4px;
+  margin-left: 1px;
   background-color: #2e8ec8;
   border-color: #2e8ec8;
 }
@@ -80,11 +91,22 @@ a {
   padding-bottom: 6rem;
   left: 50%;
   right: 50%;
-  overflow: hidden;
+  min-height: 65vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .tablinks {
   background-color: cornflowerblue;
+  float: left;
+  border: 1px dotted #ccc;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+}
+
+.activetablink {
+  background-color: #337cff;
   float: left;
   border: 1px dotted #ccc;
   cursor: pointer;

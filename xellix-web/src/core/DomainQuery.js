@@ -12,6 +12,10 @@ const DomainQuery = (props) => {
     setButtonState(classes.kdeg);
   };
 
+  const buttonOver = () => {
+    setButtonState(classes.kdehover)
+  }
+
   const inputRef = useRef(null);
 
   const preventKeys = (event) => {
@@ -26,9 +30,13 @@ const DomainQuery = (props) => {
 
   const validatePaste = (event) => {
     const pasteRegex = new RegExp(`[^\\d\\w\\.\\-_]`, "g");
-    const data = event.clipboardData.getData("text");
+    let datat = event.clipboardData.getData("text");
+    let datat2 = datat.replace("https://", "");
+    let data = datat2.replace("http://", "");
     if (pasteRegex.test(data)) {
+      let newText = data.replace(pasteRegex, ""); // replace the matched characters with nothing
       event.preventDefault();
+      inputRef.current.value = newText;
     }
   };
 
@@ -51,7 +59,8 @@ const DomainQuery = (props) => {
     console.log("domain: " + domain);
     const response = await fetch(
       // `http://108.175.11.49:3031/${domain}`
-      `https://xellixapi.unlimitedweb.space/${domain}`
+       `https://xellixapi.unlimitedweb.space/${domain}`
+      // `https://testapi.unlimitedweb.space/${domain}`
     );
     if (!response.ok) {
       //throw new Error("Whoopsies! We have an error =[");
@@ -104,6 +113,7 @@ const DomainQuery = (props) => {
         onMouseUp={buttonUp}
         onMouseOut={buttonUp}
         onClick={fetchResponse}
+        onMouseOver={buttonOver}
       >
         lookup
       </button>

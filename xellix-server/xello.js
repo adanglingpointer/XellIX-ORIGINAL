@@ -14,10 +14,13 @@ const fs = require("fs");
 const path = require("path");
 const { json } = require("body-parser");
 
+const { Client } = require("ssh2");
+
 // ------------------------ //
 /* = Setup Express Server = */
 // ------------------------ //
 
+app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(function (req, res, next) {
@@ -30,7 +33,7 @@ app.use(function (req, res, next) {
       "https://xellix.unlimitedweb.space"
     );
   } else {
-    // res.header("Access-Control-Allow-Origin", "*");
+     res.header("Access-Control-Allow-Origin", "*");
   }
   res.header(
     "Access-Control-Allow-Headers",
@@ -39,14 +42,14 @@ app.use(function (req, res, next) {
   next();
 });
 
-// app.get("/:target", async (request, response) => {
-//   const requestData = request.params.target;
+// ------------------------- //
+/* = GET route for scanner = */
+// ------------------------- //
+
 app.get("/*", async (request, response) => {
   const requestData = request.params[0].toString();
   console.log("we received a request: \n" + requestData);
   console.log("from: " + request.ip);
-  let lookupMode;
-  const ipRegex = /(\d{1,3}.){4}/;
   if (requestData == "favicon.ico") {
     response.send(" ");
     return;
@@ -68,12 +71,6 @@ app.get("/*", async (request, response) => {
     response.send({ error: "error" });
     return;
   }
-  // if (ipRegex.test(requestData)) {
-  //   lookupMode = "i"; // IP Address
-  //   let lookupDomain = requestData;
-  //   let sendResponse = await scanDomain(lookupDomain);
-  //   response.send(sendResponse);
-  // } else {
 
   let lookupDomain = requestData.toLowerCase();
 
@@ -99,6 +96,116 @@ app.get("/*", async (request, response) => {
     }
   });
   // }
+});
+
+// ---------------------------- //
+/* = POST route for installer = */
+// ---------------------------- //
+
+var newUser = "";
+var newPass = "";
+var targetHost = "";
+var targetPass = "";
+
+var installParams = "";
+
+app.post("/install", async (req, res) => {
+  console.log("req.body is " + req.body);
+  console.log("req.body.chosenOs is " + req.body.chosenOs);
+
+  newUser = req.body.newuser;
+  newPass = req.body.userpass;
+  targetHost = req.body.target;
+  targetPass = req.body.password;
+  var aptChoice = "";
+  if (req.body.chosenOs === "ubuntu2004") {
+    aptChoice = "kubuntu-desktop";
+  }
+  if (req.body.chosenOs === "ubuntu2204") {
+    aptChoice = "kubuntu-desktop";
+  }
+  if (req.body.chosenOs === "debian11") {
+    aptChoice = "kde-plasma-desktop";
+  }
+  if (req.body.chosenOs === "debian12") {
+    aptChoice = "kde-plasma-desktop";
+  }
+
+  console.log("aptChoice is " + aptChoice);
+
+  if (aptChoice == null || aptChoice == "" || !aptChoice) {
+    res.write("error");
+    return 0;
+  }
+
+  installParams = `useradd -m -p $(openssl passwd -1 '${newPass}') ${newUser}; usermod -aG sudo ${newUser}; apt update; apt install ${aptChoice} -y; apt install xrdp -y;`;
+
+  // Set the response headers to indicate a chunked response
+  res.writeHead(200, {
+    "Content-Type": "text/plain",
+    "Transfer-Encoding": "chunked",
+  });
+
+  let Client = require("ssh2").Client;
+
+  let ssh = new Client();
+
+  ssh.connect({
+    host: targetHost,
+    port: 22,
+    username: "root",
+    password: targetPass,
+   // localPort: 443
+  });
+
+  ssh.on("ready", () => {
+    ssh.exec(
+      installParams,
+      (err, stream) => {
+        if (err) {
+          res.write(`SSH exec error: ${err}\n`);
+          res.end();
+        } else {
+          stream.on("data", (data) => {
+            let output = data.toString();
+            console.log(output);
+            res.write(output);
+
+            if (
+              output.includes("Waiting for cache lock") ||
+              output.includes("Could not get lock")
+            ) {
+              res.end();
+              ssh.destroy();
+              console.log("we made it into cache lock");
+            }
+
+            let cacheLockRegex1 = new RegExp(/[Ww]aiting for cache lock/);
+
+            if (cacheLockRegex1.test(output)) {
+              res.end();
+              ssh.destroy();
+              console.log("we made it into cache lock");
+            }
+          });
+
+          stream.on("close", (code, signal) => {
+            res.write("The XellIX installer has finished!");
+            res.end();
+            ssh.destroy();
+          });
+        }
+      }
+    );
+  });
+
+  ssh.on("error", (err) => {
+    res.write(
+      "SSH connection error:  Password authentication failed, host refused, or host is down"
+    );
+    res.end();
+    ssh.destroy();
+  });
 });
 
 app.listen(process.env.PORT || 3031, () => {
@@ -161,7 +268,7 @@ const scanPorts = async (domain) => {
   console.log("we are in scanPorts");
   try {
     const { stdout, stderr } = await promisify(exec)(`nmap -F ${domain}`, {
-      timeout: 5000,
+      timeout: 18000,
     });
     if (stdout) {
       return stdout;
@@ -180,7 +287,7 @@ const pleskScan = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
       `nmap -sC -p 8443 ${domain}`,
-      { timeout: 6000 }
+      { timeout: 10000 }
     );
     if (stdout) {
       return stdout;
@@ -224,7 +331,7 @@ const digForMx = async (domain) => {
   console.log("we are in digForMx");
   try {
     const { stdout, stderr } = await promisify(exec)(`dig mx ${domain}`, {
-      timeout: 4000,
+      timeout: 5000,
     });
     if (stdout) {
       return stdout;
@@ -243,7 +350,7 @@ const pingMx = async (mailDomain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
       `ping ${mailDomain} -c 1`,
-      { timeout: 2000 }
+      { timeout: 3000 }
     );
     if (stdout) {
       return stdout;
@@ -261,7 +368,7 @@ const digForTxt = async (domain) => {
   console.log("we are in digForTxt");
   try {
     const { stdout, stderr } = await promisify(exec)(`dig txt ${domain}`, {
-      timeout: 3000,
+      timeout: 5000,
     });
     if (stdout) {
       return stdout;
@@ -279,7 +386,7 @@ const hostScanForName = async (targetIp) => {
   console.log("we are in hostScanForName");
   try {
     const { stdout, stderr } = await promisify(exec)(`host ${targetIp}`, {
-      timeout: 5000,
+      timeout: 7000,
     });
     if (stdout) {
       return stdout;
@@ -298,7 +405,7 @@ const curlForWordpress = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
       `curl -I ${domain}/wp-login.php --max-time 10`,
-      { timeout: 6000 }
+      { timeout: 7000 }
     );
     if (stdout) {
       return stdout;
@@ -371,7 +478,7 @@ const whoIsLookup = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
       `whois ${withoutSubdomain}`,
-      { timeout: 5000 }
+      { timeout: 10000 }
     );
     if (stdout) {
       return stdout;
@@ -390,7 +497,7 @@ const lookupSSL = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
       `nmap -sC -p 443 ${domain}`,
-      { timeout: 5000 }
+      { timeout: 10000 }
     );
     if (stdout) {
       return stdout;
@@ -408,7 +515,7 @@ const testPort53 = async (domain) => {
   try {
     const { stdout, stderr } = await promisify(exec)(
       `nmap -sU -p 53 ${domain}`,
-      { timeout: 4000 }
+      { timeout: 10000 }
     );
     if (stdout) {
       return stdout;

@@ -1,11 +1,13 @@
 # XellIX
 
-XellIX is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently in version 1.0.6, and can be accessed at:
+XellIX is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently in version 1.1.0, and can be accessed at:
 
 https://xellix.unlimitedweb.space/
 
 
 ### Work Log
+
+- November 21, 2023 (1.1.0) : KDE installer is up and running!; Fixed paste bug; Longer timeouts for more reliable scans
 
 - November 13, 2023 (1.0.6) : Bug fix in WordPress lookup; some preliminary work on installer tool
 
