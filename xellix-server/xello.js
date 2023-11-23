@@ -118,17 +118,22 @@ app.post("/install", async (req, res) => {
   targetHost = req.body.target;
   targetPass = req.body.password;
   var aptChoice = "";
+  var fireFox = "";
   if (req.body.chosenOs === "ubuntu2004") {
     aptChoice = "kubuntu-desktop";
+    fireFox = "firefox-esr";
   }
   if (req.body.chosenOs === "ubuntu2204") {
     aptChoice = "kubuntu-desktop";
+    fireFox = "firefox";
   }
   if (req.body.chosenOs === "debian11") {
     aptChoice = "kde-plasma-desktop";
+    fireFox = "firefox-esr";
   }
   if (req.body.chosenOs === "debian12") {
     aptChoice = "kde-plasma-desktop";
+    fireFox = "firefox-esr";
   }
 
   console.log("aptChoice is " + aptChoice);
@@ -138,7 +143,7 @@ app.post("/install", async (req, res) => {
     return 0;
   }
 
-  installParams = `useradd -m -p $(openssl passwd -1 '${newPass}') ${newUser}; usermod -aG sudo ${newUser}; apt update; apt install ${aptChoice} -y; apt install xrdp -y;`;
+  installParams = `useradd -m -p $(openssl passwd -1 '${newPass}') ${newUser}; usermod -aG sudo ${newUser}; apt update; apt install ${aptChoice} -y; apt install xrdp -y; apt install ${fireFox} -y;`;
 
   // Set the response headers to indicate a chunked response
   res.writeHead(200, {

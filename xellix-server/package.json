@@ -1,6 +1,6 @@
 {
   "name": "xellix-server",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "server and domain scanner",
   "main": "xello.js",
   "scripts": {
@@ -16,6 +16,7 @@
     "fs": "^0.0.1-security",
     "path": "^0.12.7",
     "process": "^0.11.10",
+    "ssh2": "^1.14.0",
     "util": "^0.12.5"
   }
 }
