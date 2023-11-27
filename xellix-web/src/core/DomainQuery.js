@@ -95,6 +95,7 @@ const DomainQuery = (props) => {
       nsFiltered: responseData.nsFiltered,
       queryDate: responseData.queryDate,
       error: responseData.error,
+      ipOwner: responseData.ipOwner,
     });
   };
 

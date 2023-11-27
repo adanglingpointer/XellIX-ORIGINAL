@@ -145,7 +145,6 @@ app.post("/install", async (req, res) => {
 
   installParams = `useradd -m -p $(openssl passwd -1 '${newPass}') ${newUser}; usermod -aG sudo ${newUser}; apt update; apt install ${aptChoice} -y; apt install xrdp -y; apt install ${fireFox} -y;`;
 
-  // Set the response headers to indicate a chunked response
   res.writeHead(200, {
     "Content-Type": "text/plain",
     "Transfer-Encoding": "chunked",
@@ -533,6 +532,24 @@ const testPort53 = async (domain) => {
   }
 };
 
+const whoIsIP = async (ip) => {
+  console.log("we are in whoIsIP");
+  try {
+    const { stdout, stderr } = await promisify(exec)(
+      `whois ${ip}`,
+      { timeout: 10000 }
+    );
+    if (stdout) {
+      return stdout;
+    }
+    if (stderr) {
+      return "error: " + stderr;
+    }
+  } catch (err) {
+    return "error: " + err;
+  }
+}
+
 // ***************************** //
 // ~-=~-=~-=~-=~-=~-=~-=~-=~-=~- // ---------- >
 /* Main Domain Scanning Function */
@@ -886,24 +903,8 @@ const scanDomain = async (domain) => {
       hour12 = 12;
     }
     const ampm = hour < 12 ? "AM" : "PM";
-
-    // Convert the minute and second to two-digit format using padStart()
     const minute2 = minute.toString().padStart(2, "0");
-    //const second2 = second.toString().padStart(2, "0");
-
-    // Format the date and time
     var formattedDate = `${monthName} ${day}, ${year} ${hour12}:${minute2} ${ampm} EST`;
-
-    /*
-    // Compare dates for SSL
-    if (sslExpiryDate < currentDate) {
-      //console.log("SSL certificate has expired.");
-      sslIsExpired = "true";
-    } else {
-      //console.log("SSL certificate is still valid.");
-      sslIsExpired = "false";
-    }
-    */
 
     // Compare dates for SSL
     if (sslExpiryDateObj.getTime() < currentDate.getTime()) {
@@ -950,13 +951,28 @@ const scanDomain = async (domain) => {
       hour12 = 12;
     }
     const ampm = hour < 12 ? "AM" : "PM";
-
-    // Convert the minute and second to two-digit format using padStart()
     const minute2 = minute.toString().padStart(2, "0");
-    //const second2 = second.toString().padStart(2, "0");
-
-    // Format the date and time
     var formattedDate = `${monthName} ${day}, ${year} ${hour12}:${minute2} ${ampm} EST`;
+  }
+
+  var ipWhoIs;
+  // WhoIs on IP
+  if (primaryIpAddress != "undefined") {
+    ipWhoIs = await whoIsIP(primaryIpAddress);
+    let ipWhoIsRegex1 = new RegExp(
+      /1AN1/
+    );
+    let ipWhoIsRegex2 = new RegExp(
+      /[Ii][Oo][Nn][Oo][Ss]/
+    );
+
+    if (ipWhoIsRegex1.test(ipWhoIs) | ipWhoIsRegex2.test(ipWhoIs)) {
+      ipWhoIs = "IONOS"
+    } else {
+      ipWhoIs = "undefined";
+    }
+  } else {
+    ipWhoIs = "undefined";
   }
 
   return {
@@ -985,5 +1001,6 @@ const scanDomain = async (domain) => {
     queryDate: formattedDate,
     anotherValue: "1",
     error: "none",
+    ipOwner: ipWhoIs,
   };
 };

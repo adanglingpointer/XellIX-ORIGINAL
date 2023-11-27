@@ -25,7 +25,7 @@ function App() {
   return (
     <>
       <Header />
-      <div className={classes.version}>1.1.0</div>
+      <div className={classes.version}>1.1.2</div>
       <div className={classes.tabcontainer}>
         <div className={classes.tab}>
           <button

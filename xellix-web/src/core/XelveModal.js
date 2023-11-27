@@ -41,8 +41,8 @@ const XelveModal = (props) => {
     setButtonState(classes.disabled);
     responseRef.current.value = "Connecting...\n";
     console.log("props.chosenOs is " + props.chosenOs);
-    // var fetchInstaller = await fetch("http://108.175.11.49:3031/install", {
-     var fetchInstaller = await fetch("https://xellixapi.unlimitedweb.space/install", {
+     var fetchInstaller = await fetch("http://108.175.11.49:3031/install", {
+    // var fetchInstaller = await fetch("https://xellixapi.unlimitedweb.space/install", {
     //     var fetchInstaller = await fetch("https://testapi.unlimitedweb.space/install", {
         method: "POST",
         headers: {

@@ -1,11 +1,13 @@
 # XellIX
 
-XellIX is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently in version 1.1.1, and can be accessed at:
+XellIX (shell-icks) is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently version 1.1.2, and can be accessed at:
 
 https://xellix.unlimitedweb.space/
 
 
 ### Work Log
+
+- November 27, 2023 (1.1.2) : Added IP WhoIs for IONOS domains
 
 - November 22, 2023 (1.1.1) : Added Firefox to KDE installer
 

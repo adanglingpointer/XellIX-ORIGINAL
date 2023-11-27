@@ -356,6 +356,16 @@ const Xello = (props) => {
         );
       }
 
+      var ipOwner;
+      if (displayInfo.ipOwner !== "undefined") {
+        ipOwner = (
+          <div className={classes.infopanel}>
+            <h3>IP WhoIs:</h3>
+            <p>{displayInfo.ipOwner}</p>
+          </div>
+        );
+      }
+
       var problems = "";
 
       if (
@@ -433,6 +443,8 @@ const Xello = (props) => {
             <h3>IP:</h3>
             <p>{displayInfo.domainMainIp}</p>
           </div>
+
+          {ipOwner}
 
           <div className={classes.infopanel}>
             <h3>Secondary IPs:</h3>
