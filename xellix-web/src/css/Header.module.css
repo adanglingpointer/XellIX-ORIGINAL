@@ -96,8 +96,8 @@ a {
 .tabcontainer {
   width: 90%;
   border: 1px solid #ccc;
-  margin-top: 6rem;
-  margin-left: auto;
+  /* margin-top: 6rem; */
+  /* margin-left: auto; */
   margin-right: auto;
   padding-bottom: 6rem;
   left: 50%;

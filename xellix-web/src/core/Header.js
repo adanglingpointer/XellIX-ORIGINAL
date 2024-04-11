@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import { React, useState } from "react";
 import classes from "../css/Header.module.css";
+import Xello from "./Xello";
+import Xelve from "./Xelve";
 
 const Header = (props) => {
   return (
