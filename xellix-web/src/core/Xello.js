@@ -513,6 +513,7 @@ const Xello = (props) => {
         changeLookupStatus={changeLookupStatus}
         resetLookupStatus={resetLookupStatus}
         updatePage={updatePage}
+        routeDomain={props.routeDomain}
       />
 
       <p>{information}</p>

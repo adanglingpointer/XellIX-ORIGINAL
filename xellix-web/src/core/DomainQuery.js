@@ -3,6 +3,7 @@ import classes from "../css/Query.module.css";
 
 const DomainQuery = (props) => {
   const [buttonState, setButtonState] = useState(classes.kdeg);
+  const [firstRoute, setFirstRoute] = useState(true);
 
   const buttonDown = () => {
     setButtonState(classes.kde);
@@ -13,8 +14,8 @@ const DomainQuery = (props) => {
   };
 
   const buttonOver = () => {
-    setButtonState(classes.kdehover)
-  }
+    setButtonState(classes.kdehover);
+  };
 
   const inputRef = useRef(null);
 
@@ -41,7 +42,12 @@ const DomainQuery = (props) => {
   };
 
   const fetchResponse = async () => {
-    let tdomain = inputRef.current.value;
+    var tdomain;
+    if (props.routeDomain) {
+      tdomain = props.routeDomain;
+    } else {
+      tdomain = inputRef.current.value;
+    }
     let domain = tdomain.trim();
     if (domain === null || domain === "" || domain === "undefined") {
       console.log("no domain");
@@ -59,7 +65,7 @@ const DomainQuery = (props) => {
     console.log("domain: " + domain);
     const response = await fetch(
       // `http://108.175.11.49:3031/${domain}`
-       `https://xellixapi.unlimitedweb.space/${domain}`
+      `https://xellixapi.unlimitedweb.space/${domain}`
       // `https://testapi.unlimitedweb.space/${domain}`
     );
     if (!response.ok) {
@@ -98,6 +104,13 @@ const DomainQuery = (props) => {
       ipOwner: responseData.ipOwner,
     });
   };
+
+  if (props.routeDomain) {
+    if (firstRoute == true) {
+      setFirstRoute(false);
+      fetchResponse();
+    }
+  }
 
   return (
     <div className={classes.query}>

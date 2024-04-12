@@ -1,11 +1,13 @@
 # XellIX
 
-XellIX (shell-icks) is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently version 1.1.2, and can be accessed at:
+XellIX (shell-icks) is an interactive website and server health checker, maintenance tool, and installer.  The tool is currently version 1.2.0, and can be accessed at:
 
 https://xellix.unlimitedweb.space/
 
 
 ### Work Log
+
+- April 12, 2024 (1.2.0) : Added URL routing for domain queries
 
 - November 27, 2023 (1.1.2) : Added IP WhoIs for IONOS domains
 
